@@ -201,6 +201,7 @@ async def is_user_verified(user_id: str, verify_group_id: str, verify_code: str)
                 # 如果 UID 已存在但 user_id 不同，返回警告
                 if record.user_id != user_id:
                     return "warning"
+                return "verified"
             
             # 如果没有匹配的记录，返回未验证
             return "not_verified"

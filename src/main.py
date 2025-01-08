@@ -392,6 +392,26 @@ class MessagePublisher:
                 await f.write(await response.read())
                 
         return temp_file_path
+    # async def handle_image(self, image_url, article_id):
+    #     """Handle image download and return file path"""
+    #     if not image_url:
+    #         return None
+            
+    #     if not image_url.startswith("http"):
+    #         image_url = f"{os.getenv('API_BASE_URL_2')}{image_url}"
+            
+    #     # 保存到 /tmp 目录
+    #     temp_file_path = f"/tmp/image_{article_id}.jpg"
+        
+    #     async with self.session.get(image_url) as response:
+    #         if response.status != 200:
+    #             logging.error(f"Failed to download image: {image_url}")
+    #             return None
+                
+    #         async with aiofiles.open(temp_file_path, "wb") as f:
+    #             await f.write(await response.read())
+                
+    #     return temp_file_path
         
     async def mark_as_published(self, article_id):
         """Mark article as published"""
@@ -421,6 +441,7 @@ class OptimizedBot(commands.Bot):
 
 # Bot initialization
 TOKEN = os.getenv("Discord_TOKEN")
+print(TOKEN)
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
@@ -456,7 +477,7 @@ async def on_member_join(member):
 
         welcome_message = welcome_message.replace("📣 Dear @{username}", "")
         welcome_message = welcome_message.replace("<a>", "").replace("</a>", "")
-        welcome_message = f"📣 Dear {member.mention}{welcome_message}".strip()
+        welcome_message = f"📣 Dear {member.mention} {welcome_message}".strip()
 
         welcome_channel_id = await bot.channel_manager.get_channel_id(member.guild, "welcome")
         if welcome_channel_id:
@@ -490,8 +511,17 @@ async def verify(ctx, uid: str = None):
         if not uid:
             await ctx.send(f"{ctx.author.mention}, Please provide verification code, for example: !verify 123456")
             return
+        
+        role = discord.utils.get(ctx.author.roles, name="verified")
+        if role:
+            await ctx.send(f"{ctx.author.mention}, You have been verified.")
+            return
 
         verification_status = await is_user_verified(ctx.author.id, ctx.channel.id, uid)
+        if verification_status == "verified":
+            await ctx.send(f"{ctx.author.mention}, You have been verified.")
+            return
+        
         if verification_status == "warning":
             await ctx.send(f"{ctx.author.mention}, this UID has already been verified")
             return
@@ -507,6 +537,7 @@ async def verify(ctx, uid: str = None):
             async with aiohttp.ClientSession() as session:
                 async with session.post(VERIFY_API, data=payload) as response:
                     data = await response.json()
+                    logging.info(data)
                     api_message = data.get("data", "Verification failed. Please try again.")
                     
                     admin_mention = bot.get_admin_mention(ctx.guild.id)
@@ -548,7 +579,6 @@ async def fetch_unpublished_messages():
                 articles = message_data.get("data", {}).get("items", [])
                 
                 if not articles:
-                    logging.info("No unpublished articles found")
                     return
                     
             await publisher.refresh_social_mapping()
