@@ -2,8 +2,10 @@
 # import discord
 # import logging
 # import aiohttp
-# from discord.ext import commands
+# import aiofiles
+# from discord.ext import commands, tasks
 # from dotenv import load_dotenv
+# from db_handler_aio import *
 
 # logging.basicConfig(level=logging.INFO)
 
@@ -19,51 +21,37 @@
 # # 已驗證的使用者資料
 # verified_users = {}
 
-# # 指定驗證頻道 ID
-# VERIFICATION_CHANNEL_ID = 1318102706254123020
-# INFORMATION_CHANNEL_ID = 1318102942850613298
+# WELCOME_API = os.getenv("WELCOME_API")
+# VERIFY_API = os.getenv("VERIFY_API")
+# DETAIL_API = os.getenv("DETAIL_API")
+# SOCIAL_API = os.getenv("SOCIAL_API")
 
-# WELCOME_API = "http://127.0.0.1:5002/admin/telegram/social/welcome_msg"
-# VERIFY_API = "http://127.0.0.1:5002/admin/telegram/social/verify"
-# DETAIL_API = "http://127.0.0.1:5002/admin/telegram/social/detail"
-# SOCIAL_API = "http://127.0.0.1:5002/admin/telegram/social/socials"
-
-# MESSAGE_API_URL = "http://127.0.0.1:5003/bot/posts/list?status=0"
-# UPDATE_MESSAGE_API_URL = "http://127.0.0.1:5003/bot/posts/edit"
+# MESSAGE_API_URL = os.getenv("MESSAGE_API_URL")
+# UPDATE_MESSAGE_API_URL = os.getenv("UPDATE_MESSAGE_API_URL")
 
 # @bot.event
 # async def on_ready():
 #     print(f"Bot is ready. Logged in as {bot.user}")
+#     fetch_unpublished_messages.start()  # 啟動定時任務
 
 # # @bot.event
 # # async def on_member_join(member):
-# #     """監聽新用戶加入事件，調用歡迎語 API 並在指定 welcome 頻道發送消息。"""
+# #     """監聽新用戶加入事件，調用歡迎語 API 並在 welcome 頻道發送圖片和文字。"""
 # #     try:
-# #         # 調用 API 獲取歡迎語
-# #         print(f"{member.guild.id} 用戶進群了！！！！！")
 # #         payload = {"verifyGroup": str(member.guild.id), "brand": "BYD"}
-# #         welcome_channel = member.guild.get_channel(1318120388924014694)  # 使用頻道 ID 獲取頻道
+# #         welcome_channel = member.guild.get_channel(WELCOME_CHANNEL_ID)  # welcome 頻道 ID
 
-# #         # 如果找到 welcome 頻道，發送歡迎消息
+# #         # 圖片路徑
+# #         current_dir = os.path.dirname(os.path.abspath(__file__))
+# #         image_path = os.path.join(current_dir, "..", "pics", "FindUID.jpg")
+
 # #         if welcome_channel:
-# #             await welcome_channel.send(f"{member.mention}, Hello")
-# #             # await welcome_channel.send(f"{member.mention}, {welcome_msg}")
-# #         else:
-# #             print("指定的 welcome 頻道未找到，無法發送歡迎消息。")
-# #         async with aiohttp.ClientSession() as session:
-# #             async with session.post(WELCOME_API, json=payload) as response:
-# #                 if response.status == 200:
-# #                     data = await response.json()
-# #                     welcome_msg = data.get("data", "Welcome to the server!")  # 預設歡迎語
-# #                 else:
-# #                     welcome_msg = "Welcome to the server!"
-
-# #         # 獲取指定的 welcome 頻道
-# #         welcome_channel = member.guild.get_channel(1318120388924014694)  # 使用頻道 ID 獲取頻道
-
-# #         # 如果找到 welcome 頻道，發送歡迎消息
-# #         if welcome_channel:
-# #             await welcome_channel.send(f"{member.mention}, {welcome_msg}")
+# #             with open(image_path, "rb") as image:
+# #                 file = discord.File(image, filename="FindUID.jpg")
+# #                 await welcome_channel.send(
+# #                     content=f"{member.mention}, Welcome!",  # 發送文字內容
+# #                     file=file  # 附加圖片
+# #                 )
 # #         else:
 # #             print("指定的 welcome 頻道未找到，無法發送歡迎消息。")
 # #     except Exception as e:
@@ -71,237 +59,447 @@
 
 # @bot.event
 # async def on_member_join(member):
-#     """監聽新用戶加入事件，調用歡迎語 API 並在 welcome 頻道發送圖片和文字。"""
+#     """當新用戶加入伺服器時，自動檢測伺服器的 verify 頻道，並發送歡迎消息。"""
 #     try:
-#         # 調用 API 獲取歡迎語
-#         print(f"{member.guild.id} 用戶進群了！！！！！")
-#         payload = {"verifyGroup": str(member.guild.id), "brand": "BYD"}
-#         # async with aiohttp.ClientSession() as session:
-#         #     async with session.post(WELCOME_API, json=payload) as response:
-#         #         if response.status == 200:
-#         #             data = await response.json()
-#         #             welcome_msg = data.get("data", "Welcome to the server!")  # 預設歡迎語
-#         #         else:
-#         #             welcome_msg = "Welcome to the server!"
+#         # 找出名稱為 "verify" 的頻道
+#         verify_channel = discord.utils.get(member.guild.text_channels, name="verify")
 
-#         # 獲取指定的 welcome 頻道
-#         welcome_channel = member.guild.get_channel(1318120388924014694)  # welcome 頻道 ID
-
-#         # 圖片路徑
-#         current_dir = os.path.dirname(os.path.abspath(__file__))  # 當前文件所在目錄
-#         image_path = os.path.join(current_dir, "..", "pics", "FindUID.jpg")  # 確保是 FindUID.jpg 的絕對路徑
-#         print(f"圖片路徑: {image_path}")
-
-#         # 發送歡迎消息和圖片
-#         if welcome_channel:
-#             with open(image_path, "rb") as image:
-#                 file = discord.File(image, filename="FindUID.jpg")  # 上傳圖片文件
-#                 await welcome_channel.send(
-#                     # content=f"{member.mention}, {welcome_msg}",  # 發送文字內容
-#                     content=f"{member.mention}, Welcome",  # 發送文字內容
-#                     file=file  # 附加圖片
-#                 )
-#         else:
-#             print("指定的 welcome 頻道未找到，無法發送歡迎消息。")
-#     except Exception as e:
-#         logging.error(f"Error handling member join: {e}")
-
-# @bot.command()
-# async def verify(ctx, uid: str):
-#     """處理驗證指令，並限定在指定頻道中執行。"""
-#     try:
-#         # 檢查是否在指定的驗證頻道中
-#         if ctx.channel.id != VERIFICATION_CHANNEL_ID:
-#             await ctx.send(f"{ctx.author.mention}, you can only verify yourself in the designated verification channel.")
+#         if not verify_channel:
+#             logging.warning(f"未找到伺服器 {member.guild.name} 的 verify 頻道。")
 #             return
 
-#         # 刪除用戶的輸入訊息
-#         # await ctx.message.delete()
+#         verify_group_id = verify_channel.id
 
-#         # 檢查 UID 是否已經存在
-#         if any(user_id == uid for user_id in verified_users.values()):
-#             await ctx.send(f"{ctx.author.mention}, this UID has already been verified by another user. Please check again.")
-#             return
-
-#         # 調用 API 進行驗證
-#         verify_url = "http://127.0.0.1:5002/admin/telegram/social/verify"
-#         print(ctx.channel.id)
+#         # 調用歡迎語 API
 #         payload = {
-#             "code": uid,
-#             "verifyGroup": ctx.channel.id,  # 使用當前頻道的 ID
+#             "verifyGroup": str(verify_group_id),
 #             "brand": "BYD",
 #             "type": "DISCORD"
 #         }
 
 #         async with aiohttp.ClientSession() as session:
-#             async with session.post(verify_url, data=payload) as response:
-#                 data = await response.json()
-#                 print(data)
-
-#                 # 處理返回消息
-#                 api_message = data.get("data", "Verification failed. Please try again.")
-
-#                 # 查找群組管理員或創建者
-#                 admins = [member async for member in ctx.guild.fetch_members()]
-#                 admin_user = next(
-#                     (member for member in admins if member.guild_permissions.administrator),
-#                     None
-#                 )
-
-#                 # 如果找到管理員，替換 {admin}
-#                 if admin_user:
-#                     admin_mention = admin_user.mention
+#             async with session.post(WELCOME_API, data=payload) as response:
+#                 if response.status == 200:
+#                     data = await response.json()
+#                     welcome_message = data.get("data", "Welcome to the server!")
 #                 else:
-#                     admin_mention = "the admin team"
+#                     welcome_message = "Welcome to the server!"
 
-#                 # 替換 {admin}
-#                 api_message = api_message.replace("@{admin}", admin_mention)
-
-#                 # 格式化 HTML 為 Discord 支援的 Markdown
-#                 api_message = api_message.replace("<a>", "").replace("</a>", "")
-
-#                 if response.status == 200 and data.get("status") == "success":
-#                     verified_users[ctx.author.id] = uid
-
-#                     # 分配 "verified" 身分組
-#                     role = discord.utils.get(ctx.guild.roles, name="verified")
-#                     if role:
-#                         await ctx.author.add_roles(role)
-#                         await ctx.send(f"{ctx.author.mention}, {api_message}")
-#                     else:
-#                         await ctx.send(f"{ctx.author.mention}, verification successful, but 'verified' role not found.")
-#                 else:
-#                     await ctx.send(f"{ctx.author.mention}, {api_message}")
-
-#     except Exception as e:
-#         logging.error(f"Error in verification command: {e}")
-#         # await ctx.send(f"{ctx.author.mention}, an error occurred during verification. Please try again later.")
-
-# # 執行機器人
-# bot.run(TOKEN)
-
-
-
-import os
-import discord
-import logging
-import aiohttp
-from discord.ext import commands, tasks
-from dotenv import load_dotenv
-from db_handler_aio import *
-
-logging.basicConfig(level=logging.INFO)
-
-# Bot token and intents
-load_dotenv()
-TOKEN = os.getenv("Discord_TOKEN")
-intents = discord.Intents.default()
-intents.members = True  # 追蹤成員加入事件
-intents.message_content = True  # 啟用 Message Content Intent
-
-bot = commands.Bot(command_prefix="!", intents=intents)
-
-# 已驗證的使用者資料
-verified_users = {}
-
-# 指定驗證頻道和訊息頻道 ID
-VERIFICATION_CHANNEL_ID = 1318102706254123020
-INFORMATION_CHANNEL_ID = 1325745464884068404
-WELCOME_CHANNEL_ID = 1318120388924014694
-
-WELCOME_API = "http://127.0.0.1:5002/admin/telegram/social/welcome_msg"
-VERIFY_API = "http://127.0.0.1:5002/admin/telegram/social/verify"
-DETAIL_API = "http://127.0.0.1:5002/admin/telegram/social/detail"
-SOCIAL_API = "http://127.0.0.1:5002/admin/telegram/social/socials"
-
-MESSAGE_API_URL = "http://127.0.0.1:5003/bot/posts/list?is_sent_dc=0"
-UPDATE_MESSAGE_API_URL = "http://127.0.0.1:5003/bot/posts/edit"
-
-@bot.event
-async def on_ready():
-    print(f"Bot is ready. Logged in as {bot.user}")
-    fetch_unpublished_messages.start()  # 啟動定時任務
-
-# @bot.event
-# async def on_member_join(member):
-#     """監聽新用戶加入事件，調用歡迎語 API 並在 welcome 頻道發送圖片和文字。"""
-#     try:
-#         payload = {"verifyGroup": str(member.guild.id), "brand": "BYD"}
-#         welcome_channel = member.guild.get_channel(WELCOME_CHANNEL_ID)  # welcome 頻道 ID
+#         # 移除 @{username} 字段，調整 Dear 的位置
+#         welcome_message = welcome_message.replace("📣 Dear @{username}", "")
+#         welcome_message = welcome_message.replace("<a>", "").replace("</a>", "")
+#         welcome_message = f"📣 Dear {member.mention}{welcome_message}".strip()
 
 #         # 圖片路徑
 #         current_dir = os.path.dirname(os.path.abspath(__file__))
 #         image_path = os.path.join(current_dir, "..", "pics", "FindUID.jpg")
 
+#         # 發送歡迎消息和圖片
+#         welcome_channel = discord.utils.get(member.guild.text_channels, name="welcome")
 #         if welcome_channel:
 #             with open(image_path, "rb") as image:
 #                 file = discord.File(image, filename="FindUID.jpg")
-#                 await welcome_channel.send(
-#                     content=f"{member.mention}, Welcome!",  # 發送文字內容
-#                     file=file  # 附加圖片
-#                 )
-#         else:
-#             print("指定的 welcome 頻道未找到，無法發送歡迎消息。")
+#                 await welcome_channel.send(content=welcome_message, file=file, allowed_mentions=discord.AllowedMentions(users=True))
+
+#         logging.info(f"成功發送歡迎消息到 {member.guild.name} 的頻道 {welcome_channel.name}。")
+
 #     except Exception as e:
-#         logging.error(f"Error handling member join: {e}")
+#         logging.error(f"處理新成員加入事件時發生錯誤: {e}")
+
+# @bot.command()
+# async def verify(ctx, uid: str = None):
+#     """處理驗證指令，並限定在指定頻道中執行。"""
+#     try:
+#         verify_channel = discord.utils.get(ctx.guild.text_channels, name="verify")
+
+#         # 如果找不到 verify 频道，向用户返回错误提示
+#         if not verify_channel:
+#             await ctx.send(f"{ctx.author.mention}, the 'verify' channel was not found in this server. Please contact an admin.")
+#             return
+
+#         # 检查指令是否在 verify 频道中执行
+#         if ctx.channel.id != verify_channel.id:
+#             await ctx.send(f"{ctx.author.mention}, you can only use this command in the designated {verify_channel.mention} channel.")
+#             return
+
+#         # 檢查是否提供了 UID
+#         if not uid:
+#             await ctx.send(f"{ctx.author.mention}, Please provide verification code, for example: !verify 123456")
+#             return
+
+#         # 使用 is_user_verified 函数检查 UID 是否已被验证
+#         verification_status = await is_user_verified(ctx.author.id, ctx.channel.id, uid)
+#         print(verification_status)
+
+#         if verification_status == "warning":
+#             await ctx.send(f"{ctx.author.mention}, this UID has already been verified")
+#             return
+
+#         elif verification_status == "not_verified":
+#             # 如果 UID 没有被验证过，可以继续后续的验证流程
+#             payload = {
+#                 "code": uid,
+#                 "verifyGroup": ctx.channel.id,  # 使用當前頻道的 ID
+#                 "brand": "BYD",
+#                 "type": "DISCORD"
+#             }
+
+#             async with aiohttp.ClientSession() as session:
+#                 async with session.post(VERIFY_API, data=payload) as response:
+#                     data = await response.json()
+#                     print(data)
+
+#                     api_message = data.get("data", "Verification failed. Please try again.")
+
+#                     admins = [member async for member in ctx.guild.fetch_members()]
+#                     admin_user = next(
+#                         (member for member in admins if member.guild_permissions.administrator),
+#                         None
+#                     )
+
+#                     admin_mention = admin_user.mention if admin_user else "the admin team"
+#                     api_message = api_message.replace("@{admin}", admin_mention)
+#                     api_message = api_message.replace("<a>", "").replace("</a>", "")
+
+#                     if response.status == 200 and "verification successful" in api_message:
+#                         api_message = api_message.replace("@{username}", "").replace("{Approval Link}", "").strip()
+#                         verified_users[ctx.author.id] = uid
+
+#                         role = discord.utils.get(ctx.guild.roles, name="verified")
+#                         if role:
+#                             await ctx.author.add_roles(role)
+#                             await ctx.send(f"{ctx.author.mention}, {api_message}")
+
+#                             # 添加已验证用户到数据库
+#                             await add_verified_user(ctx.author.id, ctx.channel.id, uid)
+#                         else:
+#                             await ctx.send(f"{ctx.author.mention}, verification successful, but 'verified' role not found.")
+#                     else:
+#                         # 處理驗證失敗的情况
+#                         await ctx.send(f"{ctx.author.mention}, {api_message}")
+
+#         else:
+#             # 如果查询到 UID 已被验证过
+#             await ctx.send(f"{ctx.author.mention}, {verification_status} UID.")
+
+#     except Exception as e:
+#         logging.error(f"Error in verification command: {e}")
+
+# @tasks.loop(minutes=1)  # 每 1 分鐘執行一次
+# async def fetch_unpublished_messages():
+#     """定時檢查未發布文章，並根據 topic_name 發送到對應頻道。"""
+#     try:
+#         async with aiohttp.ClientSession() as session:
+#             # 獲取未發布的文章
+#             async with session.get(MESSAGE_API_URL) as message_response:
+#                 if message_response.status != 200:
+#                     logging.error("Failed to fetch unpublished messages.")
+#                     return
+
+#                 message_data = await message_response.json()
+#                 articles = message_data.get("data", {}).get("items", [])
+
+#                 if not articles:
+#                     logging.info("No unpublished articles found.")
+#                     return
+
+#             # 獲取社群數據
+#             payload = {
+#                 "brand": "BYD",
+#                 "type": "DISCORD"
+#             }
+
+#             async with session.post(SOCIAL_API, data=payload) as social_response:
+#                 if social_response.status != 200:
+#                     logging.error("Failed to fetch social data.")
+#                     return
+
+#                 social_data = await social_response.json()
+#                 social_groups = social_data.get("data", [])
+
+#             # 建立 topic_name 與 chatId 的對應表
+#             topic_to_channel_map = {}
+#             for group in social_groups:
+#                 for chat in group.get("chats", []):
+#                     if chat.get("enable", False):
+#                         topic_to_channel_map[chat["name"]] = int(chat["chatId"])
+
+#             # 發布文章到對應頻道
+#             for article in articles:
+#                 topic_name = article.get("topic_name")
+#                 content = article.get("content", "No Content")
+#                 image_url = article.get("image")
+#                 article_id = article.get("id")
+
+#                 # 找到對應的 Discord 頻道 ID
+#                 normalized_topic = topic_name.strip()
+#                 channel_id = topic_to_channel_map.get(normalized_topic)
+#                 if not channel_id:
+#                     logging.warning(f"No matching channel found for topic: {topic_name}")
+#                     continue
+
+#                 # 發送消息到對應的頻道
+#                 channel = bot.get_channel(channel_id)
+#                 if not channel:
+#                     logging.warning(f"Channel with ID {channel_id} not found.")
+#                     continue
+
+#                 try:
+#                     pics_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pics")
+#                     os.makedirs(pics_dir, exist_ok=True)
+
+#                     if image_url:
+#                         # 確保圖片為完整 URL
+#                         if not image_url.startswith("http"):
+#                             image_url = f"http://127.0.0.1:5003{image_url}"
+
+#                         # 下載圖片到 pics 資料夾
+#                         temp_file_path = os.path.join(pics_dir, f"temp_image_{article_id}.jpg")
+#                         async with session.get(image_url) as img_response:
+#                             if img_response.status == 200:
+#                                 async with aiofiles.open(temp_file_path, "wb") as f:
+#                                     await f.write(await img_response.read())
+
+#                                 # 發送圖片和文字
+#                                 with open(temp_file_path, "rb") as image_file:
+#                                     await channel.send(content=content, file=discord.File(image_file))
+
+#                                 # 刪除臨時檔案
+#                                 os.remove(temp_file_path)
+#                             else:
+#                                 logging.error(f"Failed to download image: {image_url}")
+#                                 continue
+#                     else:
+#                         # 僅發送文字
+#                         await channel.send(content=content)
+
+#                     logging.info(f"Successfully sent article {article_id} to channel {channel_id}.")
+
+#                     # 標記文章為已發布
+#                     update_payload = {"id": article_id, "is_sent_dc": 1}
+#                     async with session.post(UPDATE_MESSAGE_API_URL, json=update_payload) as update_response:
+#                         if update_response.status == 200:
+#                             logging.info(f"Article {article_id} marked as published.")
+#                         else:
+#                             logging.error(f"Failed to mark article {article_id} as published.")
+
+#                 except Exception as e:
+#                     logging.error(f"Failed to send article {article_id} to channel {channel_id}: {e}")
+
+#     except Exception as e:
+#         logging.error(f"Error fetching or sending unpublished articles: {e}")
+
+# @fetch_unpublished_messages.before_loop
+# async def before_fetch_unpublished_messages():
+#     await bot.wait_until_ready()
+
+# # 執行機器人
+# bot.run(TOKEN)
+
+import os
+import discord
+import logging
+import aiohttp
+import aiofiles
+from discord.ext import commands, tasks
+from dotenv import load_dotenv
+from db_handler_aio import *
+from typing import Dict, Optional
+from functools import lru_cache
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+
+# Load environment variables
+load_dotenv()
+
+# API endpoints
+WELCOME_API = os.getenv("WELCOME_API")
+VERIFY_API = os.getenv("VERIFY_API")
+DETAIL_API = os.getenv("DETAIL_API")
+SOCIAL_API = os.getenv("SOCIAL_API")
+MESSAGE_API_URL = os.getenv("MESSAGE_API_URL")
+UPDATE_MESSAGE_API_URL = os.getenv("UPDATE_MESSAGE_API_URL")
+
+class ChannelManager:
+    def __init__(self):
+        self.channel_cache: Dict[int, Dict[str, int]] = {}
+        
+    async def get_channel_id(self, guild: discord.Guild, channel_name: str) -> Optional[int]:
+        """Get channel ID from cache or fetch it from guild"""
+        if guild.id not in self.channel_cache:
+            self.channel_cache[guild.id] = {}
+            
+        if channel_name not in self.channel_cache[guild.id]:
+            channel = discord.utils.get(guild.text_channels, name=channel_name)
+            if channel:
+                self.channel_cache[guild.id][channel_name] = channel.id
+            else:
+                return None
+                
+        return self.channel_cache[guild.id].get(channel_name)
+        
+    def invalidate_cache(self, guild_id: int):
+        """Invalidate cache for a specific guild"""
+        if guild_id in self.channel_cache:
+            del self.channel_cache[guild_id]
+
+class MessagePublisher:
+    def __init__(self, bot, session):
+        self.bot = bot
+        self.session = session
+        self.topic_to_channel_map = {}
+        
+    async def refresh_social_mapping(self):
+        """Refresh the topic to channel mapping"""
+        payload = {
+            "brand": "BYD",
+            "type": "DISCORD"
+        }
+        
+        async with self.session.post(SOCIAL_API, data=payload) as response:
+            if response.status != 200:
+                raise ValueError("Failed to fetch social data")
+                
+            social_data = await response.json()
+            social_groups = social_data.get("data", [])
+            
+            # Update mapping
+            self.topic_to_channel_map.clear()
+            for group in social_groups:
+                for chat in group.get("chats", []):
+                    if chat.get("enable", False):
+                        self.topic_to_channel_map[chat["name"]] = int(chat["chatId"])
+                        
+    async def handle_image(self, image_url, article_id):
+        """Handle image download and return file path"""
+        if not image_url:
+            return None
+            
+        if not image_url.startswith("http"):
+            image_url = f"{os.getenv('API_BASE_URL_2')}{image_url}"
+            
+        pics_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pics")
+        os.makedirs(pics_dir, exist_ok=True)
+        temp_file_path = os.path.join(pics_dir, f"temp_image_{article_id}.jpg")
+        
+        async with self.session.get(image_url) as response:
+            if response.status != 200:
+                logging.error(f"Failed to download image: {image_url}")
+                return None
+                
+            async with aiofiles.open(temp_file_path, "wb") as f:
+                await f.write(await response.read())
+                
+        return temp_file_path
+        
+    async def mark_as_published(self, article_id):
+        """Mark article as published"""
+        update_payload = {"id": article_id, "is_sent_dc": 1}
+        async with self.session.post(UPDATE_MESSAGE_API_URL, json=update_payload) as response:
+            if response.status != 200:
+                raise ValueError(f"Failed to mark article {article_id} as published")
+            logging.info(f"Article {article_id} marked as published")
+
+class OptimizedBot(commands.Bot):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.channel_manager = ChannelManager()
+        self.verified_users = {}
+        
+    @lru_cache(maxsize=1000)
+    def get_admin_mention(self, guild_id: int) -> str:
+        """Cache admin mention for each guild"""
+        guild = self.get_guild(guild_id)
+        if not guild:
+            return "the admin team"
+        
+        for member in guild.members:
+            if member.guild_permissions.administrator:
+                return member.mention
+        return "the admin team"
+
+# Bot initialization
+TOKEN = os.getenv("Discord_TOKEN")
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+
+bot = OptimizedBot(command_prefix="!", intents=intents)
+
+@bot.event
+async def on_ready():
+    print(f"Bot is ready. Logged in as {bot.user}")
+    fetch_unpublished_messages.start()
 
 @bot.event
 async def on_member_join(member):
-    """当新用户加入时，自动检测每个服务器的 welcome 频道并发送欢迎消息。"""
     try:
-        welcome_channel = discord.utils.get(member.guild.text_channels, name="welcome")
-
-        if not welcome_channel:
-            welcome_channel = member.guild.system_channel
-
-        if not welcome_channel:
-            logging.warning(f"未找到服务器 {member.guild.name} 的欢迎频道。")
+        verify_channel_id = await bot.channel_manager.get_channel_id(member.guild, "verify")
+        if not verify_channel_id:
+            logging.warning(f"未找到伺服器 {member.guild.name} 的 verify 頻道。")
             return
 
-        # 图片路径
-        current_dir = os.path.dirname(os.path.abspath(__file__))  # 当前文件所在目录
-        image_path = os.path.join(current_dir, "..", "pics", "FindUID.jpg")  # 确保图片路径正确
-        print(f"图片路径: {image_path}")
+        payload = {
+            "verifyGroup": str(verify_channel_id),
+            "brand": "BYD",
+            "type": "DISCORD"
+        }
 
-        # 欢迎消息内容
-        welcome_message = f"🎉 Welcome {member.mention} to {member.guild.name}! Feel free to explore and have fun!"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(WELCOME_API, data=payload) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    welcome_message = data.get("data", "Welcome to the server!")
+                else:
+                    welcome_message = "Welcome to the server!"
 
-        # 发送欢迎消息和图片
-        with open(image_path, "rb") as image:
-            file = discord.File(image, filename="FindUID.jpg")
-            await welcome_channel.send(content=welcome_message, file=file)
+        welcome_message = welcome_message.replace("📣 Dear @{username}", "")
+        welcome_message = welcome_message.replace("<a>", "").replace("</a>", "")
+        welcome_message = f"📣 Dear {member.mention}{welcome_message}".strip()
 
-        logging.info(f"成功发送欢迎消息到 {member.guild.name} 的频道 {welcome_channel.name}。")
+        welcome_channel_id = await bot.channel_manager.get_channel_id(member.guild, "welcome")
+        if welcome_channel_id:
+            welcome_channel = member.guild.get_channel(welcome_channel_id)
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            image_path = os.path.join(current_dir, "..", "pics", "FindUID.jpg")
+
+            with open(image_path, "rb") as image:
+                file = discord.File(image, filename="FindUID.jpg")
+                await welcome_channel.send(
+                    content=welcome_message,
+                    file=file,
+                    allowed_mentions=discord.AllowedMentions(users=True)
+                )
 
     except Exception as e:
-        logging.error(f"处理新成员加入事件时发生错误: {e}")
+        logging.error(f"處理新成員加入事件時發生錯誤: {e}")
 
 @bot.command()
 async def verify(ctx, uid: str = None):
-    """處理驗證指令，並限定在指定頻道中執行。"""
     try:
-        if ctx.channel.id != VERIFICATION_CHANNEL_ID:
-            await ctx.send(f"{ctx.author.mention}, you can only verify yourself in the designated verification channel.")
+        verify_channel_id = await bot.channel_manager.get_channel_id(ctx.guild, "verify")
+        if not verify_channel_id:
+            await ctx.send(f"{ctx.author.mention}, the 'verify' channel was not found in this server. Please contact an admin.")
             return
 
-        # 檢查是否提供了 UID
+        if ctx.channel.id != verify_channel_id:
+            await ctx.send(f"{ctx.author.mention}, you can only use this command in the designated <#{verify_channel_id}> channel.")
+            return
+
         if not uid:
             await ctx.send(f"{ctx.author.mention}, Please provide verification code, for example: !verify 123456")
             return
 
-        # 使用 is_user_verified 函数检查 UID 是否已被验证
         verification_status = await is_user_verified(ctx.author.id, ctx.channel.id, uid)
-        print(verification_status)
-
         if verification_status == "warning":
             await ctx.send(f"{ctx.author.mention}, this UID has already been verified")
             return
 
         elif verification_status == "not_verified":
-            # 如果 UID 没有被验证过，可以继续后续的验证流程
             payload = {
                 "code": uid,
-                "verifyGroup": ctx.channel.id,  # 使用當前頻道的 ID
+                "verifyGroup": ctx.channel.id,
                 "brand": "BYD",
                 "type": "DISCORD"
             }
@@ -309,129 +507,112 @@ async def verify(ctx, uid: str = None):
             async with aiohttp.ClientSession() as session:
                 async with session.post(VERIFY_API, data=payload) as response:
                     data = await response.json()
-                    print(data)
-
                     api_message = data.get("data", "Verification failed. Please try again.")
-
-                    admins = [member async for member in ctx.guild.fetch_members()]
-                    admin_user = next(
-                        (member for member in admins if member.guild_permissions.administrator),
-                        None
-                    )
-
-                    admin_mention = admin_user.mention if admin_user else "the admin team"
+                    
+                    admin_mention = bot.get_admin_mention(ctx.guild.id)
                     api_message = api_message.replace("@{admin}", admin_mention)
                     api_message = api_message.replace("<a>", "").replace("</a>", "")
 
                     if response.status == 200 and "verification successful" in api_message:
-                        verified_users[ctx.author.id] = uid
+                        api_message = api_message.replace("@{username}", "").replace("{Approval Link}", "").strip()
+                        bot.verified_users[ctx.author.id] = uid
 
                         role = discord.utils.get(ctx.guild.roles, name="verified")
                         if role:
                             await ctx.author.add_roles(role)
                             await ctx.send(f"{ctx.author.mention}, {api_message}")
-
-                            # 添加已验证用户到数据库
                             await add_verified_user(ctx.author.id, ctx.channel.id, uid)
                         else:
                             await ctx.send(f"{ctx.author.mention}, verification successful, but 'verified' role not found.")
                     else:
-                        # 處理驗證失敗的情况
                         await ctx.send(f"{ctx.author.mention}, {api_message}")
-
         else:
-            # 如果查询到 UID 已被验证过
             await ctx.send(f"{ctx.author.mention}, {verification_status} UID.")
 
     except Exception as e:
         logging.error(f"Error in verification command: {e}")
 
-@tasks.loop(minutes=1)  # 每 1 分鐘執行一次
+@tasks.loop(minutes=1)
 async def fetch_unpublished_messages():
     """定時檢查未發布文章，並根據 topic_name 發送到對應頻道。"""
     try:
         async with aiohttp.ClientSession() as session:
-            # 獲取未發布的文章
-            async with session.get(MESSAGE_API_URL) as message_response:
-                if message_response.status != 200:
-                    logging.error("Failed to fetch unpublished messages.")
+            publisher = MessagePublisher(bot, session)
+            
+            async with session.get(MESSAGE_API_URL) as response:
+                if response.status != 200:
+                    logging.error("Failed to fetch unpublished messages")
                     return
-
-                message_data = await message_response.json()
+                    
+                message_data = await response.json()
                 articles = message_data.get("data", {}).get("items", [])
-
+                
                 if not articles:
-                    logging.info("No unpublished articles found.")
+                    logging.info("No unpublished articles found")
                     return
-
-            # 獲取社群數據
-            payload = {
-                "brand": "BYD",
-                "type": "DISCORD"
-            }
-
-            async with session.post(SOCIAL_API, data=payload) as social_response:
-                if social_response.status != 200:
-                    logging.error("Failed to fetch social data.")
-                    return
-
-                social_data = await social_response.json()
-                social_groups = social_data.get("data", [])
-
-            # 建立 topic_name 與 chatId 的對應表
-            topic_to_channel_map = {}
-            for group in social_groups:
-                for chat in group.get("chats", []):
-                    if chat.get("enable", False):
-                        topic_to_channel_map[chat["name"]] = int(chat["chatId"])
-
-            # 發布文章到對應頻道
+                    
+            await publisher.refresh_social_mapping()
+            
             for article in articles:
-                topic_name = article.get("topic_name")
-                content = article.get("content", "No Content")
-                image_url = article.get("image")
-                article_id = article.get("id")
-
-                # 找到對應的 Discord 頻道 ID
-                normalized_topic = topic_name.strip()
-                channel_id = topic_to_channel_map.get(normalized_topic)
-                if not channel_id:
-                    logging.warning(f"No matching channel found for topic: {topic_name}")
-                    continue
-
-                # 發送消息到對應的頻道
-                channel = bot.get_channel(channel_id)
-                if not channel:
-                    logging.warning(f"Channel with ID {channel_id} not found.")
-                    continue
-
                 try:
-                    if image_url:
-                        # 發送圖片和文字
-                        await channel.send(content=content, file=discord.File(image_url))
+                    topic_name = article.get("topic_name", "").strip()
+                    channel_id = publisher.topic_to_channel_map.get(topic_name)
+                    
+                    if not channel_id:
+                        logging.warning(f"No matching channel found for topic: {topic_name}")
+                        continue
+                        
+                    channel = bot.get_channel(channel_id)
+                    if not channel:
+                        logging.warning(f"Channel with ID {channel_id} not found")
+                        continue
+                        
+                    temp_file_path = await publisher.handle_image(
+                        article.get("image"),
+                        article.get("id")
+                    )
+                    
+                    content = article.get("content", "No Content")
+                    if temp_file_path:
+                        with open(temp_file_path, "rb") as image_file:
+                            await channel.send(
+                                content=content,
+                                file=discord.File(image_file)
+                            )
+                        os.remove(temp_file_path)
                     else:
-                        # 僅發送文字
                         await channel.send(content=content)
-
-                    logging.info(f"Successfully sent article {article_id} to channel {channel_id}.")
-
-                    # 標記文章為已發布
-                    update_payload = {"id": article_id, "status": 1}
-                    async with session.post(UPDATE_MESSAGE_API_URL, json=update_payload) as update_response:
-                        if update_response.status == 200:
-                            logging.info(f"Article {article_id} marked as published.")
-                        else:
-                            logging.error(f"Failed to mark article {article_id} as published.")
-
+                        
+                    await publisher.mark_as_published(article.get("id"))
+                    logging.info(f"Successfully sent article {article.get('id')} to channel {channel_id}")
+                    
                 except Exception as e:
-                    logging.error(f"Failed to send article {article_id} to channel {channel_id}: {e}")
-
+                    logging.error(f"Error processing article {article.get('id')}: {e}")
+                    continue
+                    
     except Exception as e:
-        logging.error(f"Error fetching or sending unpublished articles: {e}")
+        logging.error(f"Error in fetch_unpublished_messages: {e}")
 
 @fetch_unpublished_messages.before_loop
 async def before_fetch_unpublished_messages():
     await bot.wait_until_ready()
 
-# 執行機器人
-bot.run(TOKEN)
+# Event handlers for channel updates
+@bot.event
+async def on_guild_channel_delete(channel):
+    """Invalidate cache when a channel is deleted"""
+    bot.channel_manager.invalidate_cache(channel.guild.id)
+
+@bot.event
+async def on_guild_channel_create(channel):
+    """Invalidate cache when a channel is created"""
+    bot.channel_manager.invalidate_cache(channel.guild.id)
+
+@bot.event
+async def on_guild_channel_update(before, after):
+    """Invalidate cache when a channel is updated"""
+    bot.channel_manager.invalidate_cache(before.guild.id)
+
+# Run the bot
+if __name__ == "__main__":
+    bot.run(TOKEN)
