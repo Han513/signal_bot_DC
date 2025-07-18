@@ -115,25 +115,29 @@ async def insert_or_update_group(chat_id, title, group_type, username=None, desc
             await session.rollback()
             return False
 
-async def deactivate_group(chat_id):
-    """停用群組（當 Bot 被移除）"""
-    utc_plus_8 = timezone(timedelta(hours=8))
+async def deactivate_verified_user(user_id: str, verify_group_id: str) -> bool:
+    """
+    將已驗證用戶的 is_active 字段設為 False。
+    返回 True 如果成功，否則返回 False。
+    """
     async with Session() as session:
         try:
             async with session.begin():
                 stmt = (
-                    update(Group)
-                    .where(Group.chat_id == str(chat_id))
-                    .values(
-                        is_active=False,
-                        leave_date=datetime.now(utc_plus_8)
+                    update(VerifyUser)
+                    .where(
+                        VerifyUser.user_id == user_id,
+                        VerifyUser.verify_group_id == verify_group_id,
+                        VerifyUser.is_active == True
                     )
+                    .values(is_active=False)
                 )
-                await session.execute(stmt)
+                result = await session.execute(stmt)
+
             await session.commit()
-            return True
+            return result.rowcount > 0  # 如果更新的行數大於 0，表示成功
         except Exception as e:
-            logging.error(f"停用群組時發生錯誤: {e}")
+            logging.error(f"停用用戶時發生錯誤: {e}")
             await session.rollback()
             return False
 
@@ -185,29 +189,62 @@ async def add_verified_user(user_id: str, verify_group_id: str, verify_code:int)
             raise
 
 async def is_user_verified(user_id: str, verify_group_id: str, verify_code: str) -> str:
-
     async with Session() as session:
         try:
             # 查询是否存在与 verify_code 和 verify_group_id 匹配的记录
             stmt = select(VerifyUser).where(
                 VerifyUser.verify_group_id == verify_group_id,
-                VerifyUser.verify_code == verify_code,
-                VerifyUser.is_active == True
+                VerifyUser.verify_code == verify_code
             )
             result = await session.execute(stmt)
             record = result.scalar_one_or_none()
 
             if record:
                 # 如果 UID 已存在但 user_id 不同，返回警告
-                if record.user_id != user_id:
+                if str(record.user_id) != str(user_id):
                     return "warning"
+
+                # 如果记录存在并且 is_active == False，恢复状态
+                if not record.is_active:
+                    # 更新用户为活跃状态
+                    stmt_update = (
+                        update(VerifyUser)
+                        .where(VerifyUser.user_id == user_id, VerifyUser.verify_group_id == verify_group_id)
+                        .values(is_active=True)
+                    )
+                    await session.execute(stmt_update)
+                    await session.commit()
+                    return "reverified"
+
+                # 如果记录存在且 is_active == True，返回已验证
                 return "verified"
-            
+
             # 如果没有匹配的记录，返回未验证
             return "not_verified"
+
         except Exception as e:
             logging.error(f"检查用户是否已验证时发生错误: {e}")
             return "not_verified"
+        
+async def is_user_verified_remove(user_id: str, verify_group_id: str) -> bool:
+    """
+    判斷用戶是否已驗證通過，基於 user_id 和 verify_group_id。
+    返回 True 如果用戶已驗證，否則返回 False。
+    """
+    async with Session() as session:
+        try:
+            stmt = select(VerifyUser).where(
+                VerifyUser.user_id == user_id,
+                VerifyUser.verify_group_id == verify_group_id,
+                VerifyUser.is_active == True
+            )
+            result = await session.execute(stmt)
+            record = result.scalar_one_or_none()
+
+            return record is not None  # 如果找到匹配記錄，返回 True
+        except Exception as e:
+            logging.error(f"檢查用戶是否已驗證時發生錯誤: {e}")
+            return False
         
 async def get_verified_user(user_id: str, info_group_id: str) -> bool:
     """
