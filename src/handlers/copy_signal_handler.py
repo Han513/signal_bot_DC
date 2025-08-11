@@ -79,17 +79,17 @@ async def process_copy_signal_discord(data: dict, bot) -> None:
             return
 
         # 產生交易員統計圖片
-        logger.info("[CopySignal] 開始產生交易員統計圖片")
-        img_path = await generate_trader_summary_image(
-            data["trader_url"],
-            data["trader_name"],
-            data["trader_pnlpercentage"],
-            data["trader_pnl"],
-        )
-        if not img_path:
-            logger.warning("[CopySignal] 圖片生成失敗，取消推送")
-            return
-        logger.info(f"[CopySignal] 圖片生成成功: {img_path}")
+        # logger.info("[CopySignal] 開始產生交易員統計圖片")
+        # img_path = await generate_trader_summary_image(
+        #     data["trader_url"],
+        #     data["trader_name"],
+        #     data["trader_pnlpercentage"],
+        #     data["trader_pnl"],
+        # )
+        # if not img_path:
+        #     logger.warning("[CopySignal] 圖片生成失敗，取消推送")
+        #     return
+        # logger.info(f"[CopySignal] 圖片生成成功: {img_path}")
 
         # 將毫秒級時間戳轉為 UTC+0 可讀格式
         formatted_time = format_timestamp_ms_to_utc(data.get('time'))
@@ -119,12 +119,11 @@ async def process_copy_signal_discord(data: dict, bot) -> None:
                 detail_line = ""
 
             caption = (
-                f"📢 **CopySignal**\n\n"
-                f"⚡️**{data['trader_name']}** Trading Alert\n\n"
-                f"**{data['pair']}**  {margin_type_str} **{data['pair_leverage']}X**\n\n"
-                f"Time: {formatted_time} (UTC+0)\n"
-                f"Direction: {pair_type_str} {pair_side_str}\n"
-                f"Avg. Price: {data['price']}\n\n"
+                f"⚡️**{data['trader_name']}** New Trade Open\n\n"
+                f"📢{data['pair']}  {margin_type_str} {data['pair_leverage']}X\n\n"
+                f"⏰Time: {formatted_time} (UTC+0)\n"
+                f"➡️Direction: {pair_type_str} {pair_side_str}\n"
+                f"🎯Entry Price: {data['price']}\n"
                 f"{detail_line}"
             )
             
@@ -134,7 +133,7 @@ async def process_copy_signal_discord(data: dict, bot) -> None:
                     bot=bot,
                     channel_id=channel_id,
                     text=caption,
-                    image_path=img_path
+                    image_path=None
                 )
             )
 

@@ -85,7 +85,9 @@ async def process_scalp_update_discord(data: dict, bot) -> None:
         for i, (channel_id, topic_id, jump) in enumerate(push_targets):
             logger.info(f"[ScalpUpdate] 處理第 {i+1} 個頻道: {channel_id}, topic: {topic_id}, jump: {jump}")
             
-            text = format_scalp_update_text(data, formatted_time, jump == "1")
+            # 根據 jump 值決定是否包含連結
+            include_link = (jump == "1")
+            text = format_scalp_update_text(data, formatted_time, include_link)
             logger.info(f"[ScalpUpdate] 為頻道 {channel_id} 準備消息內容")
             
             tasks.append(
@@ -162,10 +164,10 @@ def format_scalp_update_text(data: dict, formatted_time: str, include_link: bool
     is_update = has_previous_tp or has_previous_sl
     
     # 格式化價格
-    tp_price = format_float(data.get("tp_price", "")) if data.get("tp_price") else ""
-    sl_price = format_float(data.get("sl_price", "")) if data.get("sl_price") else ""
-    previous_tp_price = format_float(data.get("previous_tp_price", "")) if data.get("previous_tp_price") else ""
-    previous_sl_price = format_float(data.get("previous_sl_price", "")) if data.get("previous_sl_price") else ""
+    tp_price = str(data.get("tp_price", "")) if data.get("tp_price") else ""
+    sl_price = str(data.get("sl_price", "")) if data.get("sl_price") else ""
+    previous_tp_price = str(data.get("previous_tp_price", "")) if data.get("previous_tp_price") else ""
+    previous_sl_price = str(data.get("previous_sl_price", "")) if data.get("previous_sl_price") else ""
     
     if is_update:
         # 更新操作文案

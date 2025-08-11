@@ -84,7 +84,9 @@ async def process_trade_summary_discord(data: dict, bot) -> None:
         for i, (channel_id, topic_id, jump) in enumerate(push_targets):
             logger.info(f"[TradeSummary] 處理第 {i+1} 個頻道: {channel_id}, topic: {topic_id}, jump: {jump}")
             
-            text = format_trade_summary_text(data, jump == "1")
+            # 根據 jump 值決定是否包含連結
+            include_link = (jump == "1")
+            text = format_trade_summary_text(data, include_link)
             logger.info(f"[TradeSummary] 為頻道 {channel_id} 準備消息內容")
             
             tasks.append(
@@ -173,9 +175,9 @@ def format_trade_summary_text(data: dict, include_link: bool = True) -> str:
     margin_type = margin_type_map.get(str(data.get("pair_margin_type", "")), str(data.get("pair_margin_type", "")))
     
     # 格式化數值
-    entry_price = format_float(data.get("entry_price", 0))
-    exit_price = format_float(data.get("exit_price", 0))
-    realized_pnl = format_float(data.get("realized_pnl_percentage", 0))
+    entry_price = str(data.get("entry_price", 0))
+    exit_price = str(data.get("exit_price", 0))
+    realized_pnl = format_float(float(data.get("realized_pnl_percentage", 0)) * 100)
     leverage = format_float(data.get("pair_leverage", 0))
     
     # 格式化時間
@@ -183,10 +185,10 @@ def format_trade_summary_text(data: dict, include_link: bool = True) -> str:
     
     text = (
         f"📊 **Trade Summary**\n\n"
-        f"⚡️**{data.get('trader_name', 'Trader')}** Position Closed\n\n"
+        f"⚡️**{data.get('trader_name', 'Trader')}** Close Position\n\n"
         f"**{data.get('pair', '')}** {margin_type} **{leverage}X**\n\n"
         f"Time: {formatted_time} (UTC+0)\n"
-        f"Direction: {pair_side}\n"
+        f"Direction: Close {pair_side}\n"
         f"ROI: {realized_pnl}%\n"
         f"Entry Price: ${entry_price}\n"
         f"Exit Price: ${exit_price}"
@@ -241,9 +243,9 @@ def generate_trade_summary_image(data: dict) -> str:
             return None
         
         # 格式化數值
-        realized_pnl = format_float(data.get("realized_pnl_percentage", 0))
-        entry_price = format_float(data.get("entry_price", 0))
-        exit_price = format_float(data.get("exit_price", 0))
+        realized_pnl = format_float(float(data.get("realized_pnl_percentage", 0)) * 100)
+        entry_price = str(data.get("entry_price", 0))
+        exit_price = str(data.get("exit_price", 0))
         leverage = format_float(data.get("pair_leverage", 0))
         
         # 判斷盈虧顏色
@@ -253,8 +255,6 @@ def generate_trade_summary_image(data: dict) -> str:
         # 判斷交易方向顏色
         is_long = str(data.get("pair_side", "")) == "1"
         direction_color = (0, 191, 99) if is_long else (237, 29, 36)  # Long用綠色，Short用紅色
-        
-        logger.info(f"[TradeSummary] 數值格式化完成 - ROI: {realized_pnl}%, Entry: ${entry_price}, Exit: ${exit_price}")
         
         # 在背景圖上填充數值到對應位置
         # 根據第二張照片的風格調整位置，增加間距並靠左

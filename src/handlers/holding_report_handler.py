@@ -14,25 +14,65 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-def validate_holding_report(data: dict) -> None:
-    """驗證持倉報告請求資料，失敗時拋出 ValueError。"""
-    required_fields = {
-        "trader_uid", "trader_name", "trader_detail_url", "pair", "pair_side",
-        "pair_margin_type", "pair_leverage", "entry_price", "current_price",
-        "unrealized_pnl_percentage"
-    }
+def validate_holding_report(data) -> None:
+    """支持批量trader+infos结构的校验"""
+    if isinstance(data, list):
+        if not data:
+            raise ValueError("列表不能為空")
+        for i, trader in enumerate(data):
+            if not isinstance(trader, dict):
+                raise ValueError(f"列表項目 {i} 必須為字典格式，收到: {type(trader)}")
+            # 校验trader主字段
+            required_fields = {"trader_uid", "trader_name", "trader_detail_url"}
+            missing = [f for f in required_fields if not trader.get(f)]
+            if missing:
+                raise ValueError(f"trader {i} 缺少欄位: {', '.join(missing)}")
+            # 校验infos
+            infos = trader.get("infos")
+            if not infos or not isinstance(infos, list):
+                raise ValueError(f"trader {i} 缺少infos或格式錯誤")
+            for j, info in enumerate(infos):
+                validate_single_holding_report(info, f"trader {i} - info {j}")
+    elif isinstance(data, dict):
+        # 单个trader
+        required_fields = {"trader_uid", "trader_name", "trader_detail_url"}
+        missing = [f for f in required_fields if not data.get(f)]
+        if missing:
+            raise ValueError(f"trader 缺少欄位: {', '.join(missing)}")
+        infos = data.get("infos")
+        if not infos or not isinstance(infos, list):
+            raise ValueError(f"trader 缺少infos或格式錯誤")
+        for j, info in enumerate(infos):
+            validate_single_holding_report(info, f"info {j}")
+    else:
+        raise ValueError("請求資料必須為字典或列表格式")
 
+def validate_single_holding_report(data: dict, prefix: str = "") -> None:
+    """驗證單個持倉報告項目（只校验币种相关字段）"""
+    required_fields = {
+        "pair", "pair_side", "pair_margin_type", "pair_leverage",
+        "entry_price", "current_price", "unrealized_pnl_percentage"
+    }
     missing = [f for f in required_fields if not data.get(f)]
     if missing:
-        raise ValueError(f"缺少欄位: {', '.join(missing)}")
+        error_msg = f"缺少欄位: {', '.join(missing)}"
+        if prefix:
+            error_msg = f"{prefix} - {error_msg}"
+        raise ValueError(error_msg)
 
     # 檢查 pair_side
     if str(data["pair_side"]) not in {"1", "2"}:
-        raise ValueError("pair_side 只能是 '1'(Long) 或 '2'(Short)")
+        error_msg = "pair_side 只能是 '1'(Long) 或 '2'(Short)"
+        if prefix:
+            error_msg = f"{prefix} - {error_msg}"
+        raise ValueError(error_msg)
 
     # 檢查 pair_margin_type
     if str(data["pair_margin_type"]) not in {"1", "2"}:
-        raise ValueError("pair_margin_type 只能是 '1'(Cross) 或 '2'(Isolated)")
+        error_msg = "pair_margin_type 只能是 '1'(Cross) 或 '2'(Isolated)"
+        if prefix:
+            error_msg = f"{prefix} - {error_msg}"
+        raise ValueError(error_msg)
 
     # 數值檢查
     try:
@@ -41,66 +81,66 @@ def validate_holding_report(data: dict) -> None:
         float(data["unrealized_pnl_percentage"])
         float(data["pair_leverage"])
         # 檢查可選的止盈止損價格
-        if data.get("tp_price"):
+        if data.get("tp_price") not in (None, "", "None"):
             float(data["tp_price"])
-        if data.get("sl_price"):
+        if data.get("sl_price") not in (None, "", "None"):
             float(data["sl_price"])
     except (TypeError, ValueError):
-        raise ValueError("數值欄位必須為數字格式")
+        error_msg = "數值欄位必須為數字格式"
+        if prefix:
+            error_msg = f"{prefix} - {error_msg}"
+        raise ValueError(error_msg)
 
 async def process_holding_report_discord(data: dict, bot) -> None:
-    """背景協程：處理持倉報告推送到 Discord"""
+    """背景協程：處理持倉報告推送到 Discord，支援多trader，每個trader合併所有infos發一條訊息"""
     logger.info("[HoldingReport] 開始執行背景處理任務")
     try:
-        trader_uid = str(data["trader_uid"])
-        logger.info(f"[HoldingReport] 處理交易員 UID: {trader_uid}")
+        # 支援多個 trader
+        traders = data if isinstance(data, list) else [data]
+        for trader in traders:
+            trader_uid = str(trader["trader_uid"])
+            logger.info(f"[HoldingReport] 處理交易員 UID: {trader_uid}")
 
-        # 獲取推送目標
-        logger.info("[HoldingReport] 開始獲取推送目標")
-        push_targets = await get_push_targets(trader_uid)
-        logger.info(f"[HoldingReport] 獲取到 {len(push_targets)} 個推送目標")
+            # 獲取推送目標
+            push_targets = await get_push_targets(trader_uid)
+            logger.info(f"[HoldingReport] 獲取到 {len(push_targets)} 個推送目標")
 
-        if not push_targets:
-            logger.warning(f"[HoldingReport] 未找到符合條件的持倉報告推送頻道: {trader_uid}")
-            return
+            if not push_targets:
+                logger.warning(f"[HoldingReport] 未找到符合條件的持倉報告推送頻道: {trader_uid}")
+                continue
 
-        # 準備發送任務
-        tasks = []
-        logger.info(f"[HoldingReport] 準備發送到 {len(push_targets)} 個頻道")
-        
-        for i, (channel_id, topic_id, jump) in enumerate(push_targets):
-            logger.info(f"[HoldingReport] 處理第 {i+1} 個頻道: {channel_id}, topic: {topic_id}, jump: {jump}")
-            
-            text = format_holding_report_text(data, jump == "1")
-            logger.info(f"[HoldingReport] 為頻道 {channel_id} 準備消息內容")
-            
-            tasks.append(
-                send_discord_message(
-                    bot=bot,
-                    channel_id=channel_id,
-                    text=text
-                )
-            )
-
-        # 等待 Discord 發送結果
-        logger.info(f"[HoldingReport] 開始並發發送 {len(tasks)} 個消息")
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        # 檢查發送結果
-        success_count = 0
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                logger.error(f"[HoldingReport] 頻道 {push_targets[i][0]} 發送失敗: {result}")
-            else:
-                success_count += 1
-                logger.info(f"[HoldingReport] 頻道 {push_targets[i][0]} 發送成功")
-        
-        logger.info(f"[HoldingReport] 發送完成: {success_count}/{len(tasks)} 成功")
+            infos = trader.get("infos")
+            logger.info(f"[HoldingReport] trader_name={trader.get('trader_name')} infos={infos}")
+            await send_holding_to_all_targets(infos, trader, push_targets, bot)
 
     except Exception as e:
         logger.error(f"[HoldingReport] 推送持倉報告到 Discord 失敗: {type(e).__name__} - {e}")
         import traceback
         logger.error(f"[HoldingReport] 詳細錯誤: {traceback.format_exc()}")
+
+async def send_holding_to_all_targets(infos, trader, push_targets, bot):
+    tasks = []
+    for channel_id, topic_id, jump in push_targets:
+        # 根據 jump 值決定是否包含連結
+        include_link = (jump == "1")
+        
+        if infos and isinstance(infos, list):
+            logger.info(f"[HoldingReport] infos 長度: {len(infos)}")
+            # 合併所有 infos，發一條訊息
+            text = format_holding_report_list_text(infos, trader, include_link)
+        else:
+            logger.info(f"[HoldingReport] 無 infos 或不是 list，使用單一持倉格式")
+            # 沒有 infos，當作單一持倉
+            text = format_holding_report_text(trader, include_link)
+        
+        tasks.append(
+            send_discord_message(
+                bot=bot,
+                channel_id=channel_id,
+                text=text
+            )
+        )
+    await asyncio.gather(*tasks, return_exceptions=True)
 
 async def send_discord_message(bot, channel_id: int, text: str) -> None:
     """發送 Discord 消息"""
@@ -145,9 +185,9 @@ def format_holding_report_text(data: dict, include_link: bool = True) -> str:
     margin_type = margin_type_map.get(str(data.get("pair_margin_type", "")), str(data.get("pair_margin_type", "")))
     
     # 格式化數值
-    entry_price = format_float(data.get("entry_price", 0))
-    current_price = format_float(data.get("current_price", 0))
-    roi = format_float(data.get("unrealized_pnl_percentage", 0))
+    entry_price = str(data.get("entry_price", 0))
+    current_price = str(data.get("current_price", 0))
+    roi = format_float(data.get("unrealized_pnl_percentage", 0) * 100)
     leverage = format_float(data.get("pair_leverage", 0))
     
     # 判斷是否有設置止盈止損
@@ -156,7 +196,7 @@ def format_holding_report_text(data: dict, include_link: bool = True) -> str:
     
     text = (
         f"📊 **Holding Report**\n\n"
-        f"⚡️**{data.get('trader_name', 'Trader')}** Trading Summary (Updated every 2 hours)\n\n"
+        f"⚡️**{data.get('trader_name', 'Trader')}** Trading Summary (Updated every 12 hours)\n\n"
         f"**{data.get('pair', '')}** {margin_type} **{leverage}X**\n"
         f"Direction: {pair_side}\n"
         f"Entry Price: ${entry_price}\n"
@@ -167,10 +207,10 @@ def format_holding_report_text(data: dict, include_link: bool = True) -> str:
     # 如果有設置止盈止損，添加相關信息
     tp_sl_lines = []
     if has_tp:
-        tp_price = format_float(data.get("tp_price", 0))
+        tp_price = str(data.get("tp_price", 0))
         tp_sl_lines.append(f"✅TP Price: ${tp_price}")
     if has_sl:
-        sl_price = format_float(data.get("sl_price", 0))
+        sl_price = str(data.get("sl_price", 0))
         tp_sl_lines.append(f"🛑SL Price: ${sl_price}")
     
     if tp_sl_lines:
@@ -182,6 +222,46 @@ def format_holding_report_text(data: dict, include_link: bool = True) -> str:
         detail_url = data.get('trader_detail_url', '')
         text += f"\n\n[About {trader_name}, more actions>>]({detail_url})"
     
+    return text
+
+def format_holding_report_list_text(infos: list, trader: dict, include_link: bool = True) -> str:
+    logger.info(f"[HoldingReport] format_holding_report_list_text called, infos={infos}")
+    if not infos:
+        return ""
+    trader_name = trader.get('trader_name', 'Trader')
+    text = f"⚡️{trader_name} Trading Summary (Updated every 12 hours)\n\n"
+    for i, data in enumerate(infos, 1):
+        pair_side_map = {"1": "Long", "2": "Short", 1: "Long", 2: "Short"}
+        margin_type_map = {"1": "Cross", "2": "Isolated", 1: "Cross", 2: "Isolated"}
+        pair_side = pair_side_map.get(str(data.get("pair_side", "")), str(data.get("pair_side", "")))
+        margin_type = margin_type_map.get(str(data.get("pair_margin_type", "")), str(data.get("pair_margin_type", "")))
+        entry_price = str(data.get("entry_price", 0))
+        current_price = str(data.get("current_price", 0))
+        roi = format_float(float(data.get("unrealized_pnl_percentage", 0)) * 100)
+        leverage = format_float(data.get("pair_leverage", 0))
+        has_tp = data.get("tp_price") not in (None, "None", "null", "")
+        has_sl = data.get("sl_price") not in (None, "None", "null", "")
+        text += (
+            f"**{i}. {data.get('pair', '')} {margin_type} {leverage}X**\n"
+            f"➡️Direction: {pair_side}\n"
+            f"🎯Entry Price: ${entry_price}\n"
+            f"📊Current Price: ${current_price}\n"
+            f"🚀ROI: {roi}%"
+        )
+        tp_sl_lines = []
+        if has_tp:
+            tp_price = str(data.get("tp_price", 0))
+            tp_sl_lines.append(f"✅TP Price: ${tp_price}")
+        if has_sl:
+            sl_price = str(data.get("sl_price", 0))
+            tp_sl_lines.append(f"🛑SL Price: ${sl_price}")
+        if tp_sl_lines:
+            text += "\n" + "\n".join(tp_sl_lines)
+        text += "\n\n"
+    text = text.rstrip('\n')
+    if include_link:
+        detail_url = trader.get('trader_detail_url', '')
+        text += f"\n\n[About {trader_name}, more actions>>]({detail_url})"
     return text
 
 async def handle_holding_report(request: Request, bot) -> Dict:
@@ -202,7 +282,12 @@ async def handle_holding_report(request: Request, bot) -> Dict:
     # 解析 JSON
     try:
         data = await request.json()
-        logger.info(f"[HoldingReport] 成功解析 JSON 數據: {list(data.keys())}")
+        if isinstance(data, dict):
+            logger.info(f"[HoldingReport] 成功解析 JSON 數據: {list(data.keys())}")
+        elif isinstance(data, list):
+            logger.info(f"[HoldingReport] 成功解析 JSON 數據: list, 長度={len(data)}")
+        else:
+            logger.info(f"[HoldingReport] 成功解析 JSON 數據: type={type(data)}")
     except Exception as e:
         logger.error(f"[HoldingReport] JSON 解析失敗: {e}")
         return {"status": "400", "message": "Invalid JSON body"}

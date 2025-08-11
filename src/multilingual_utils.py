@@ -1,23 +1,26 @@
+import re
+
 AI_TRANSLATE_HINT = {
-    "zh": "\n~~~由 AI 自動翻譯，僅供參考~~~",
-    "en": "\n~~~Automatically translated by AI. For reference only.~~~",
-    "ru": "\n~~~Переведено ИИ, только для справки~~~",
-    "id": "\n~~~Diterjemahkan AI, hanya sebagai referensi~~~",
-    "ja": "\n~~~AI翻訳、参考用です~~~",
-    "pt": "\n~~~Traduzido por IA, apenas para referência~~~",
-    "fr": "\n~~~Traduction IA, à titre indicatif~~~",
-    "es": "\n~~~Traducción por IA, solo ~~~referencia~~~",
-    "tr": "\n~~~Yapay zeka çevirisi, sadece bilgi amaçlı~~~",
-    "de": "\n~~~KI-Übersetzung, nur zur Orientierung~~~",
-    "it": "\n~~~Tradotto da AI, solo a scopo informativo~~~",
-    "vi": "\n~~~Dịch bởi AI, chỉ mang tính tham khảo~~~",
-    "tl": "\n~~~Isinalin ng AI, para sa sanggunian lamang~~~",
-    "ar": "\n~~~مترجم بواسطة الذكاء الاصطناعي، للاستشارة فقط~~~",
-    "fa": "\n~~~ترجمه شده توسط هوش مصنوعی، فقط برای مرجع~~~",
-    "km": "\n~~~បកប្រែដោយ AI សម្រាប់គោលបំណងយោបល់ប៉ុណ្ណោះ~~~",
-    "ko": "\n~~~AI 자동 번역 내용이며, 참고용입니다.~~~",
-    "ms": "\n~~~Diterjemahkan oleh AI, untuk rujukan sahaja~~~",
-    "th": "\n~~~แปลโดย AI เฉพาะเพื่อการอ้างอิง~~~",
+    "zh_CN": "\n\n--- 由 AI 自動翻譯，僅供參考 ---",
+    "zh_TW": "\n\n--- 由 AI 自動翻譯，僅供參考 ---",
+    "en_US": "\n\n--- Automatically translated by AI. For reference only. ---",
+    "ru_RU": "\n\n--- Переведено ИИ, только для справки ---",
+    "in_ID": "\n\n--- Diterjemahkan AI, hanya sebagai referensi ---",
+    "ja_JP": "\n\n--- AI翻訳、参考用です ---",
+    "pt_PT": "\n\n--- Traduzido por IA, apenas para referência ---",
+    "fr_FR": "\n\n--- Traduction IA, à titre indicatif ---",
+    "es_ES": "\n\n--- Traducción por IA, solo para referencia ---",
+    "tr_TR": "\n\n--- Yapay zeka çevirisi, sadece bilgi amaçlı ---",
+    "de_DE": "\n\n--- KI-Übersetzung, nur zur Orientierung ---",
+    "it_IT": "\n\n--- Tradotto da AI, solo a scopo informativo ---",
+    "vi_VN": "\n\n--- Dịch bởi AI, chỉ mang tính tham khảo ---",
+    "tl_PH": "\n\n--- Isinalin ng AI, para sa sanggunian lamang ---",
+    "ar_AE": "\n\n--- مترجم بواسطة الذكاء الاصطناعي، للاستشارة فقط ---",
+    "fa_IR": "\n\n--- ترجمه شده توسط هوش مصنوعی، فقط برای مرجع ---",
+    "km_KH": "\n\n--- បកប្រែដោយ AI សម្រាប់គោលបំណងយោបល់ប៉ុណ្ណោះ ---",
+    "ko_KR": "\n\n--- AI 자동 번역 내용이며, 참고용입니다. ---",
+    "ms_MY": "\n\n--- Diterjemahkan oleh AI, untuk rujukan sahaja ---",
+    "th_TH": "\n\n--- แปลโดย AI เฉพาะเพื่อการอ้างอิง ---",
 }
 
 # 語言代碼映射表，將社群語言代碼映射到接口語言代碼
@@ -44,43 +47,68 @@ LANGUAGE_CODE_MAPPING = {
 }
 
 def escape_markdown_v2(text):
-    escape_chars = r'_ * [ ] ( ) ~ ` > # + - = | { } . !'.split()
+    # 確保 text 不為 None
+    if text is None:
+        text = ""
+    
+    # 修正 escape_chars 的定義，確保正確分割字符
+    escape_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
     for ch in escape_chars:
         text = text.replace(ch, '\\' + ch)
     return text
 
+def html_to_discord_markdown(text):
+    """將HTML標籤轉換為Discord Markdown格式"""
+    if not text:
+        return text
+    # 處理粗體
+    text = re.sub(r'<b>(.*?)</b>', r'**\1**', text, flags=re.IGNORECASE)
+    text = re.sub(r'<strong>(.*?)</strong>', r'**\1**', text, flags=re.IGNORECASE)
+    # 處理斜體
+    text = re.sub(r'<i>(.*?)</i>', r'*\1*', text, flags=re.IGNORECASE)
+    text = re.sub(r'<em>(.*?)</em>', r'*\1*', text, flags=re.IGNORECASE)
+    # 處理底線
+    text = re.sub(r'<u>(.*?)</u>', r'__\1__', text, flags=re.IGNORECASE)
+    # 處理連結 - 將 <a href="URL">文字</a> 轉換為 [文字](URL)
+    text = re.sub(r'<a\s+href=["\']([^"\']+)["\'][^>]*>(.*?)</a>', r'[\2](\1)', text, flags=re.IGNORECASE)
+    return text
+
 def get_multilingual_content(post, lang):
     """
-    根據語言代碼取得對應的翻譯內容並加上 AI 提示
-    
-    Args:
-        post: 文章資料，包含 translations 物件
-        lang: 社群語言代碼 (如 "zh", "en", "ja")
-    
-    Returns:
-        str: 跳脫後的完整內容
+    根據語言代碼取得對應的翻譯內容並加上 AI 提示（只給 Discord 用，不做跳脫）
     """
-    # 檢查 translations 是否為 null 或空
     translations = post.get("translations")
     if not translations:
-        # translations 為 null 或空，直接使用原始 content
         content = post.get("content", "")
-        hint = AI_TRANSLATE_HINT.get(lang, AI_TRANSLATE_HINT["en"])
-        full_content = content + "\n" + hint
-        return escape_markdown_v2(full_content)
-    
-    # 取得對應的接口語言代碼
-    api_lang_code = LANGUAGE_CODE_MAPPING.get(lang, "en_US")
-    
-    # 從 translations 中取得對應語言內容
+        # 處理 \n 換行
+        content = content.replace("\\n", "\n")
+        # 處理HTML標籤
+        content = html_to_discord_markdown(content)
+        if lang in ['en', 'en_US']:
+            return content
+        else:
+            # 使用映射後的語言代碼
+            api_lang_code = LANGUAGE_CODE_MAPPING.get(lang, "en_US")
+            hint = AI_TRANSLATE_HINT.get(api_lang_code, AI_TRANSLATE_HINT["en_US"])
+            return content + hint
+
+    if "_" in lang:
+        api_lang_code = lang
+    else:
+        api_lang_code = LANGUAGE_CODE_MAPPING.get(lang, "en_US")
+
     content = translations.get(api_lang_code)
-    
-    # 如果沒有對應翻譯，fallback 到英文，再 fallback 到原始 content
     if not content:
         content = translations.get("en_US") or post.get("content", "")
-    
-    # 加上對應語言的 AI 提示，並多一個換行
-    hint = AI_TRANSLATE_HINT.get(lang, AI_TRANSLATE_HINT["en"])
-    full_content = content + "\n" + hint
-    
-    return escape_markdown_v2(full_content) 
+    if content is None:
+        content = ""
+    # 處理 \n 換行
+    content = content.replace("\\n", "\n")
+    # 處理HTML標籤
+    content = html_to_discord_markdown(content)
+
+    if lang in ['en', 'en_US'] or api_lang_code == 'en_US':
+        return content
+    else:
+        hint = AI_TRANSLATE_HINT.get(api_lang_code, AI_TRANSLATE_HINT["en_US"])
+        return content + hint 

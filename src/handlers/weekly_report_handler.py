@@ -29,7 +29,7 @@ async def handle_weekly_report(request: Request, bot) -> Dict[str, Any]:
             return {"status": "error", "message": str(err)}
         
         # 背景處理，不阻塞 HTTP 回應
-        asyncio.create_task(process_weekly_report(data, bot))
+        asyncio.run_coroutine_threadsafe(process_weekly_report(data, bot), bot.loop)
         
         return {"status": "success", "message": "週報推送已開始處理"}
         
@@ -100,8 +100,9 @@ async def process_weekly_report(data: dict, bot) -> None:
                     logger.warning(f"在頻道 {chat_id} 中沒有發送消息的權限")
                     continue
                 
-                # 格式化消息
-                content = format_weekly_report_text(data, jump == "1")
+                # 格式化消息 - 根據 jump 值決定是否包含連結
+                include_link = (jump == "1")
+                content = format_weekly_report_text(data, include_link)
                 
                 # 創建發送任務
                 task = send_discord_weekly_report(
@@ -154,7 +155,7 @@ def format_weekly_report_text(data: dict, include_link: bool = True) -> str:
     
     # 格式化數值 - total_roi 需要乘上100以匹配圖片顯示
     total_roi = format_float(float(data.get("total_roi", 0)) * 100)
-    win_rate = format_float(data.get("win_rate", 0))
+    win_rate = format_float(float(data.get("win_rate", 0)) * 100)
     
     # 判斷盈虧顏色
     is_positive = float(data.get("total_roi", 0)) >= 0

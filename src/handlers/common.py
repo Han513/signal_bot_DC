@@ -194,12 +194,19 @@ async def get_push_targets(trader_uid: str) -> List[Tuple[int, str, str]]:
                 ):
                     cid = chat.get("chatId")
                     if cid:
+                        # 處理 jump 值：如果為 null 或未設置，默認為 "0"
+                        jump_value = chat.get("jump")
+                        if jump_value is None or jump_value == "" or jump_value == "null":
+                            jump_value = "0"
+                        else:
+                            jump_value = str(jump_value)
+                        
                         push_targets.append((
                             int(cid),
                             str(chat.get("topicId", "")),
-                            str(chat.get("jump", "1"))
+                            jump_value
                         ))
-                        logging.info(f"[CopySignal] 找到匹配的推送目標: channel_id={cid}, topic_id={chat.get('topicId')}, jump={chat.get('jump', '1')}")
+                        logging.info(f"[CopySignal] 找到匹配的推送目標: channel_id={cid}, topic_id={chat.get('topicId')}, jump={jump_value}")
 
         logging.info(f"[CopySignal] 總共找到 {len(push_targets)} 個推送目標")
         return push_targets

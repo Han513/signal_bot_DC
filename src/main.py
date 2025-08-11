@@ -1,4 +1,5 @@
 import io
+import re
 import os
 import discord
 import logging
@@ -17,22 +18,18 @@ from discord.ext.commands import CommandNotFound
 from fastapi import FastAPI, Query, Request, BackgroundTasks
 from threading import Thread
 from typing import Union
-import re
 from handlers.copy_signal_handler import handle_send_copy_signal
 from handlers.trade_summary_handler import handle_send_trade_summary
 from handlers.scalp_update_handler import handle_send_scalp_update
 from handlers.holding_report_handler import handle_holding_report
 from handlers.weekly_report_handler import handle_weekly_report
-from multilingual_utils import get_multilingual_content
+from multilingual_utils import get_multilingual_content, AI_TRANSLATE_HINT, LANGUAGE_CODE_MAPPING
 
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 
-# Load environment variables
 load_dotenv()
 app = FastAPI()
 
-# API endpoints
 WELCOME_API = os.getenv("WELCOME_API")
 VERIFY_API = os.getenv("VERIFY_API")
 DETAIL_API = os.getenv("DETAIL_API")
@@ -94,15 +91,21 @@ class MessagePublisher:
             # Update mapping
             self.topic_to_channel_map.clear()
             for group in social_groups:
+                # lang 在 group 層級，不是 chat 層級
+                group_lang = group.get("lang", "en_US")
                 for chat in group.get("chats", []):
                     if chat.get("enable", False):
                         topic = chat["name"]
                         channel_id = int(chat["chatId"])
-                        lang = chat.get("lang", "en")
                         if topic not in self.topic_to_channel_map:
                             self.topic_to_channel_map[topic] = []
-                        self.topic_to_channel_map[topic].append({"channel_id": channel_id, "lang": lang})
-
+                        
+                        # 檢查是否已經存在相同的 channel_id，避免重複添加
+                        existing_channels = [ch["channel_id"] for ch in self.topic_to_channel_map[topic]]
+                        if channel_id not in existing_channels:
+                            self.topic_to_channel_map[topic].append({"channel_id": channel_id, "lang": group_lang})
+                        else:
+                            logging.warning(f"主題 '{topic}' 中已存在頻道 ID {channel_id}，跳過重複添加")
 
     async def handle_image(self, image_url, article_id):
         """Handle image download and return file path"""
@@ -110,8 +113,8 @@ class MessagePublisher:
             return None
 
         if not image_url.startswith("http"):
-            image_url = f"https://sp.signalcms.com{image_url}"
-            # image_url = f"http://172.25.183.139:5003{image_url}"
+            # image_url = f"https://sp.signalcms.com{image_url}"
+            image_url = f"http://172.25.183.139:5003{image_url}"
             # image_url = f"http://127.0.0.1:5003{image_url}"
 
         pics_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pics")
@@ -127,14 +130,6 @@ class MessagePublisher:
                 await f.write(await response.read())
 
         return temp_file_path
-
-    # async def mark_as_published(self, article_id):
-    #     """Mark article as published"""
-    #     update_payload = {"id": article_id, "is_sent_dc": 1}
-    #     async with self.session.post(UPDATE_MESSAGE_API_URL, json=update_payload) as response:
-    #         if response.status != 200:
-    #             raise ValueError(f"Failed to mark article {article_id} as published")
-    #         logging.info(f"Article {article_id} marked as published")
 
     async def mark_as_published(self, article_id):
         """標記文章為已發布"""
@@ -373,90 +368,6 @@ def has_permission_to_create(ctx):
     
     return False
 
-# @bot.command(name="createwelcome")
-# async def create_welcome(ctx, *, text=None):
-#     """創建帶有驗證按鈕的歡迎訊息 (可選帶圖片)"""
-#     # 立即刪除用戶的命令消息
-#     try:
-#         await ctx.message.delete()
-#     except Exception as e:
-#         logging.error(f"Error deleting message: {e}")
-    
-#     # 檢查權限
-#     if not has_permission_to_create(ctx):
-#         # 發送私人消息
-#         await ctx.author.send(f"You don't have permission to use this command.")
-#         return
-    
-#     # 檢查文本是否提供
-#     if not text:
-#         # 發送私人消息
-#         await ctx.author.send(f"Please provide welcome text. Usage: `!createwelcome Your welcome text`")
-#         return
-    
-#     # 檢查伺服器中是否已有驗證按鈕消息
-    # has_verify_button = False
-    # button_channel = None
-    # for channel in ctx.guild.text_channels:
-    #     try:
-    #         async for message in channel.history(limit=100):
-    #             if message.author == bot.user and len(message.components) > 0:
-    #                 for row in message.components:
-    #                     for component in row.children:
-    #                         if component.custom_id == "verify_button":
-    #                             has_verify_button = True
-    #                             button_channel = channel
-    #                             break
-    #                     if has_verify_button:
-    #                         break
-    #             if has_verify_button:
-    #                 break
-    #         if has_verify_button:
-    #             break
-    #     except (discord.Forbidden, discord.HTTPException):
-    #         continue
-    
-#     if has_verify_button:
-#         # 發送私人消息
-#         await ctx.author.send(f"This server already has a verification button in #{button_channel.name}. Please delete the existing message first to create a new one.")
-#         return
-    
-#     # 檢查是否有附加圖片
-#     has_image = False
-#     image_url = None
-    
-#     if len(ctx.message.attachments) > 0:
-#         for attachment in ctx.message.attachments:
-#             if attachment.content_type.startswith('image/'):
-#                 has_image = True
-#                 image_url = attachment.url
-#                 break
-    
-#     bold_text = f"**{text}**"
-#     # 創建嵌入式消息
-#     embed = discord.Embed(
-#         description=bold_text,
-#         color=discord.Color.blue()
-#     )
-    
-#     # 如果有圖片，添加到嵌入消息中
-#     if has_image:
-#         embed.set_image(url=image_url)
-#         message = await ctx.send(embed=embed, view=VerifyView())
-#     else:
-#         # 發送不帶圖片的歡迎消息
-#         message = await ctx.send(embed=embed, view=VerifyView())
-    
-#     # 將消息置頂
-#     try:
-#         await message.pin(reason="Welcome message with verification button")
-#         logging.info(f"Successfully pinned welcome message in channel {ctx.channel.name}")
-#     except discord.Forbidden:
-#         # 使用 ephemeral=True 讓錯誤消息只有發送命令的用戶可見
-#         await ctx.send(f"{ctx.author.mention}, I don't have permission to pin messages.", ephemeral=True)
-#     except Exception as e:
-#         logging.error(f"Error pinning message: {e}")
-
 @bot.command(name="createwelcome")
 async def create_welcome(ctx, *, text=None):
     """創建帶有驗證按鈕的歡迎訊息 (可選帶圖片)"""
@@ -691,50 +602,6 @@ async def list_images(ctx):
     else:
         await safe_dm(ctx, "No available images found.")
 
-# @bot.event
-# async def on_member_join(member):
-#     try:
-#         verify_channel_id = await bot.channel_manager.get_channel_id(member.guild, "verify")
-#         if not verify_channel_id:
-#             logging.warning(f"未找到伺服器 {member.guild.name} 的 verify 頻道。")
-#             return
-
-#         payload = {
-#             "verifyGroup": str(verify_channel_id),
-#             "brand": "BYD",
-#             "type": "DISCORD"
-#         }
-
-#         async with aiohttp.ClientSession() as session:
-#             async with session.post(WELCOME_API, data=payload) as response:
-#                 if response.status == 200:
-#                     data = await response.json()
-#                     welcome_message = data.get("data", "Welcome to the server!")
-#                 else:
-#                     welcome_message = "Welcome to the server!"
-
-#         welcome_message = welcome_message.replace("📣 Dear @{username}", "")
-#         welcome_message = welcome_message.replace("/verify", "!verify")
-#         welcome_message = welcome_message.replace("<a>", "").replace("</a>", "")
-#         welcome_message = f"📣 Dear {member.mention} {welcome_message}".strip()
-
-#         welcome_channel_id = await bot.channel_manager.get_channel_id(member.guild, "welcome")
-#         if welcome_channel_id:
-#             welcome_channel = member.guild.get_channel(welcome_channel_id)
-#             current_dir = os.path.dirname(os.path.abspath(__file__))
-#             image_path = os.path.join(current_dir, "..", "pics", "FindUID.jpg")
-
-#             with open(image_path, "rb") as image:
-#                 file = discord.File(image, filename="FindUID.jpg")
-#                 await welcome_channel.send(
-#                     content=welcome_message,
-#                     file=file,
-#                     allowed_mentions=discord.AllowedMentions(users=True)
-#                 )
-
-#     except Exception as e:
-#         logging.error(f"處理新成員加入事件時發生錯誤: {e}")
-
 @bot.event
 async def on_member_remove(member):
     try:
@@ -913,11 +780,26 @@ async def fetch_unpublished_messages():
                 message_data = await response.json()
                 articles = message_data.get("data", {}).get("items", [])
 
-                if not articles:
-                    return  # 沒有未發布的文章
+                # 添加調試信息，查看 API 返回的原始數據格式
+                if articles:
+                    first_article = articles[0]
+                    logging.info(f"API 返回的第一篇文章結構: {list(first_article.keys())}")
+                    if 'content' in first_article:
+                        content = first_article['content']
+                        logging.info(f"第一篇文章內容類型: {type(content)}")
+                        logging.info(f"第一篇文章內容長度: {len(content) if content else 0}")
+                        if content:
+                            logging.info(f"第一篇文章內容中的換行符: {content.count(chr(10))}")
+                            logging.info(f"第一篇文章內容前200字符: {repr(content[:200])}")
 
-            # 更新頻道映射
+                if not articles:
+                    return
+
             await publisher.refresh_social_mapping()
+            
+            # 添加調試信息，檢查頻道映射
+            for topic, channels in publisher.topic_to_channel_map.items():
+                logging.info(f"主題 '{topic}' 的頻道配置: {channels}")
 
             # 處理每篇文章
             for article in articles:
@@ -929,6 +811,10 @@ async def fetch_unpublished_messages():
                 if not channel_lang_list:
                     logging.warning(f"未找到與主題 '{topic_name}' 匹配的頻道，跳過文章 {article_id}")
                     continue
+                
+                # 添加調試信息
+                logging.info(f"文章 {article_id} 的內容結構: content={article.get('content') is not None}, translations={article.get('translations') is not None}")
+                logging.info(f"文章 {article_id} 的頻道列表: {channel_lang_list}")
                 successful_sends = 0
                 temp_file_path = None
                 if article.get("image"):
@@ -938,7 +824,8 @@ async def fetch_unpublished_messages():
                         logging.error(f"下載文章 {article_id} 的圖片時出錯: {e}")
                 for channel_info in channel_lang_list:
                     channel_id = channel_info["channel_id"]
-                    lang = channel_info.get("lang", "en")
+                    lang = channel_info.get("lang", "en_US")
+                    logging.info(f"準備發送文章 {article_id} 到頻道 {channel_id}，語言: {lang}")
                     try:
                         channel = bot.get_channel(int(channel_id))
                         if not channel:
@@ -950,7 +837,27 @@ async def fetch_unpublished_messages():
                             logging.warning(f"在伺服器 '{guild_name}' 的頻道 '{channel.name}' (ID: {channel_id}) 中沒有發送消息的權限")
                             continue
                         # 多語言文案
-                        content = get_multilingual_content(article, lang)
+                        try:
+                            # 添加調試信息，查看原始內容的換行符
+                            raw_content = article.get('content', '')
+                            if raw_content:
+                                logging.info(f"處理文章 {article_id} 的語言 {lang}，原始內容長度: {len(raw_content)}")
+                                logging.info(f"原始內容中的換行符數量: {raw_content.count(chr(10))}")
+                                logging.info(f"原始內容前100字符: {repr(raw_content[:100])}")
+                            
+                            content = get_multilingual_content(article, lang)
+                            if not content:
+                                logging.warning(f"文章 {article_id} 的內容為空，跳過發送")
+                                continue
+                            logging.info(f"文章 {article_id} 處理完成，內容長度: {len(content)}")
+                            logging.info(f"處理後內容中的換行符數量: {content.count(chr(10))}")
+                            logging.info(f"處理後內容前100字符: {repr(content[:100])}")
+                        except Exception as e:
+                            logging.error(f"處理文章 {article_id} 的多語言內容時出錯: {type(e).__name__} - {e}")
+                            logging.error(f"文章 {article_id} 的詳細資料: content={article.get('content')}, translations={article.get('translations')}")
+                            # 使用原始內容作為備用
+                            content = article.get("content", "No content available")
+                        
                         if temp_file_path and permissions.attach_files:
                             with open(temp_file_path, "rb") as image_file:
                                 await channel.send(content=content, file=discord.File(image_file))
@@ -1065,11 +972,8 @@ async def get_members(id: Union[int, None] = Query(default=None, description="Di
     }
 
 def html_to_discord_markdown(text):
-    # 粗體
     text = re.sub(r'<b>(.*?)</b>', r'**\1**', text, flags=re.IGNORECASE)
-    # 斜體
     text = re.sub(r'<i>(.*?)</i>', r'*\1*', text, flags=re.IGNORECASE)
-    # 底線
     text = re.sub(r'<u>(.*?)</u>', r'__\1__', text, flags=re.IGNORECASE)
     return text
 
@@ -1077,142 +981,157 @@ def html_to_discord_markdown(text):
 async def send_announcement_to_discord(request: Request):
     payload = await request.json()
     content = payload.get("content")
-    image = payload.get("image")  # 可為 None
+    image = payload.get("image")
+
+    logging.info(f"[DC] 收到公告請求: content_type={type(content)}, image={image}")
+    logging.info(f"[DC] 接收到的 payload: {payload}")
 
     if not content:
+        logging.error("[DC] 缺少 content 參數")
         return {"status": "error", "message": "Missing content"}
 
-    # 自動將 HTML 轉為 Discord Markdown
-    content = html_to_discord_markdown(content)
+    # 解析多語言內容（參考 TG bot 的處理方式）
+    try:
+        if isinstance(content, str):
+            # 如果是字符串，嘗試解析為JSON
+            import json
+            content_dict = json.loads(content)
+            logging.info(f"[DC] 成功解析字符串為 JSON: {type(content_dict)}")
+        else:
+            # 如果已經是字典，直接使用
+            content_dict = content
+            logging.info(f"[DC] 使用字典格式內容: {type(content_dict)}")
+    except (json.JSONDecodeError, TypeError) as e:
+        logging.error(f"[DC] 內容格式錯誤: {e}")
+        return {"status": "error", "message": "Invalid content format. Expected JSON object with language codes as keys."}
 
     try:
-        # 使用 asyncio.run_coroutine_threadsafe 來在 Discord 的事件循環中執行任務
         async def send_announcement_task():
+            logging.info("[DC] 開始執行公告發送任務")
             async with aiohttp.ClientSession() as session:
-                # 獲取社交數據
                 payload = {
                     "brand": "BYD",
                     "type": "DISCORD"
                 }
+                logging.info(f"[DC] 呼叫 SOCIAL_API: {SOCIAL_API}")
                 async with session.post(SOCIAL_API, data=payload) as response:
+                    logging.info(f"[DC] SOCIAL_API 響應狀態: {response.status}")
                     if response.status != 200:
                         raise Exception("Failed to fetch social data")
                     social_data = await response.json()
+                    logging.info(f"[DC] SOCIAL_API 響應數據: {social_data}")
 
                 social_groups = social_data.get("data", [])
+                logging.info(f"[DC] 找到 {len(social_groups)} 個社交群組")
 
-                # 獲取 Announcements 頻道
-                channel_ids = []
+                # 獲取 Announcements 頻道及其對應的語言
+                channel_lang_mapping = []
                 for group in social_groups:
+                    group_lang = group.get("lang", "en_US")  # 默認語言為 en_US
+                    if not group_lang:
+                        group_lang = "en_US"
+                    
+                    logging.info(f"[DC] 處理群組: uid={group.get('uid')}, lang={group_lang}")
+                    
                     for chat in group.get("chats", []):
                         if chat.get("enable", False) and chat["name"] == "Announcements":
-                            channel_ids.append(int(chat["chatId"]))
+                            channel_info = {
+                                "channel_id": int(chat["chatId"]),
+                                "lang": group_lang
+                            }
+                            channel_lang_mapping.append(channel_info)
+                            logging.info(f"[DC] 找到 Announcements 頻道: {channel_info}")
 
-                if not channel_ids:
+                logging.info(f"[DC] 總共找到 {len(channel_lang_mapping)} 個 Announcements 頻道")
+                if not channel_lang_mapping:
                     raise Exception("No Discord channels with topic 'Announcements' found")
 
                 # 下載圖片（如果需要）
                 image_bytes = None
                 if image:
+                    logging.info(f"[DC] 開始下載圖片: {image}")
                     async with session.get(image) as img_resp:
+                        logging.info(f"[DC] 圖片下載響應狀態: {img_resp.status}")
                         if img_resp.status == 200:
                             image_bytes = await img_resp.read()
+                            logging.info(f"[DC] 圖片下載成功，大小: {len(image_bytes)} bytes")
                         else:
                             logging.warning(f"[DC] 圖片下載失敗，狀態碼: {img_resp.status}")
 
-                # 發送到所有頻道
-                for channel_id in channel_ids:
+                # 發送到所有頻道，根據語言匹配對應的文案
+                logging.info(f"[DC] 開始發送公告到 {len(channel_lang_mapping)} 個頻道")
+                success_count = 0
+                failed_count = 0
+                
+                for i, channel_info in enumerate(channel_lang_mapping, 1):
+                    channel_id = channel_info["channel_id"]
+                    lang = channel_info["lang"]
+                    
+                    logging.info(f"[DC] 處理第 {i}/{len(channel_lang_mapping)} 個頻道: {channel_id}, 語言: {lang}")
+                    
                     channel = bot.get_channel(channel_id)
                     if not channel:
+                        logging.warning(f"[DC] 找不到頻道 {channel_id}")
                         continue
 
-                    if image_bytes:
-                        file = discord.File(fp=io.BytesIO(image_bytes), filename="announcement.jpg")
-                        await channel.send(content=content, file=file)
-                    else:
-                        await channel.send(content=content)
+                    # 根據語言獲取對應的文案
+                    channel_content = content_dict.get(lang)
+                    if not channel_content:
+                        logging.warning(f"[DC] 找不到語言 {lang} 的文案，跳過頻道 {channel_id}")
+                        continue
+                    logging.info(f"[DC] 找到語言 {lang} 的文案，長度: {len(channel_content)}")
+
+                    # 轉換 HTML 到 Discord Markdown
+                    channel_content = html_to_discord_markdown(channel_content)
+                    logging.info(f"[DC] HTML 轉換後文案長度: {len(channel_content)}")
+                    
+                    # 在文案最後加上對應語言的 AI 提示詞（除了英文）
+                    if lang != "en_US":
+                        # 使用映射後的語言代碼獲取 AI 提示詞
+                        api_lang_code = LANGUAGE_CODE_MAPPING.get(lang, lang)
+                        ai_hint = AI_TRANSLATE_HINT.get(api_lang_code, AI_TRANSLATE_HINT["en_US"])
+                        channel_content += ai_hint
+                        logging.info(f"[DC] 添加 AI 提示詞: {api_lang_code}")
+
+                    try:
+                        if image_bytes:
+                            file = discord.File(fp=io.BytesIO(image_bytes), filename="announcement.jpg")
+                            logging.info(f"[DC] 發送帶圖片的公告到頻道 {channel_id}")
+                            await asyncio.wait_for(
+                                channel.send(content=channel_content, file=file),
+                                timeout=15.0
+                            )
+                        else:
+                            logging.info(f"[DC] 發送純文字公告到頻道 {channel_id}")
+                            await asyncio.wait_for(
+                                channel.send(content=channel_content),
+                                timeout=15.0
+                            )
+                        logging.info(f"[DC] 成功發送到頻道 {channel_id}")
+                        success_count += 1
+                    except asyncio.TimeoutError:
+                        logging.error(f"[DC] 發送到頻道 {channel_id} 超時")
+                        failed_count += 1
+                        continue
+                    except Exception as e:
+                        logging.error(f"[DC] 發送到頻道 {channel_id} 失敗: {e}")
+                        failed_count += 1
+                        continue
+
+                # 統計發送結果
+                logging.info(f"[DC] 公告發送完成: 成功 {success_count}/{len(channel_lang_mapping)} 個頻道")
 
         # 使用 run_coroutine_threadsafe 在 Discord 的事件循環中執行
+        logging.info("[DC] 準備在 Discord 事件循環中執行發送任務")
         asyncio.run_coroutine_threadsafe(send_announcement_task(), bot.loop)
 
         return {"status": "success", "message": "Announcement sent to Discord"}
 
     except Exception as e:
         logging.error(f"[DC] 發送公告失敗: {e}")
+        import traceback
+        logging.error(f"[DC] 詳細錯誤: {traceback.format_exc()}")
         return {"status": "error", "message": str(e)}
-
-# @app.post("/api/discord/announcement")
-# async def send_announcement_to_discord(request: Request, background_tasks: BackgroundTasks):
-#     payload = await request.json()
-#     content = payload.get("content")
-#     image = payload.get("image")  # 可為 None
-
-#     if not content:
-#         return {"status": "error", "message": "Missing content"}
-
-#     background_tasks.add_task(dispatch_discord_announcement, content, image)
-#     return {"status": "success", "message": "Dispatching to Discord"}
-
-# async def dispatch_discord_announcement(content: str, image: str = None, max_retries: int = 3):
-#     for attempt in range(max_retries):
-#         try:
-#             # 檢查頻道是否存在
-#             channel = bot.get_channel(1326740046409371729)  # 測試頻道
-#             if not channel:
-#                 logging.error("[DC] 找不到頻道 ID: 1326740046409371729")
-#                 return
-            
-#             logging.info(f"[DC] 找到頻道: {channel.name} (ID: {channel.id})")
-            
-#             # 檢查機器人權限
-#             bot_member = channel.guild.get_member(bot.user.id)
-#             if not bot_member:
-#                 logging.error("[DC] 無法獲取機器人在伺服器中的成員信息")
-#                 return
-            
-#             permissions = channel.permissions_for(bot_member)
-#             if not permissions.send_messages:
-#                 logging.error(f"[DC] 機器人在頻道 {channel.name} 中沒有發送消息的權限")
-#                 return
-            
-#             if image and not permissions.attach_files:
-#                 logging.warning(f"[DC] 機器人在頻道 {channel.name} 中沒有附加文件的權限，將只發送文字")
-#                 image = None
-            
-#             logging.info(f"[DC] 權限檢查通過，準備發送消息")
-            
-#             # 使用 discord.http.session 而不是創建新的 aiohttp session
-#             if image:
-#                 try:
-#                     # 使用 Discord 的內建 session
-#                     async with bot.http.session.get(image) as img_resp:
-#                         if img_resp.status == 200:
-#                             image_bytes = await img_resp.read()
-#                             file = discord.File(fp=io.BytesIO(image_bytes), filename="announcement.jpg")
-#                             await channel.send(content=content, file=file)
-#                             logging.info("[DC] 發送成功（含圖片）")
-#                             return
-#                         else:
-#                             logging.warning(f"[DC] 圖片下載失敗，狀態碼: {img_resp.status}")
-#                             await channel.send(content=content + "\n[Image failed to load]")
-#                             logging.info("[DC] 發送成功（圖片下載失敗）")
-#                             return
-#                 except Exception as img_error:
-#                     logging.error(f"[DC] 圖片處理錯誤: {img_error}")
-#                     await channel.send(content=content + "\n[Image processing failed]")
-#                     logging.info("[DC] 發送成功（圖片處理失敗）")
-#                     return
-#             else:
-#                 await channel.send(content=content)
-#                 logging.info("[DC] 發送成功（純文字）")
-#                 return
-
-#         except Exception as e:
-#             if attempt == max_retries - 1:  # 最後一次嘗試
-#                 logging.error(f"[DC] 第 {attempt + 1} 次嘗試失敗，放棄發送: {e}")
-#             else:
-#                 logging.warning(f"[DC] 第 {attempt + 1} 次嘗試失敗，將重試: {e}")
-#                 await asyncio.sleep(2 ** attempt)  # 指數退避
 
 async def safe_dm(ctx, content: str):
     """嘗試對用戶發送私訊；若失敗，改為在頻道提示並於 30 秒後自動刪除。"""
