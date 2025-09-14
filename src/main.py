@@ -113,8 +113,8 @@ class MessagePublisher:
             return None
 
         if not image_url.startswith("http"):
-            # image_url = f"https://sp.signalcms.com{image_url}"
-            image_url = f"http://172.25.183.139:5003{image_url}"
+            image_url = f"https://sp.signalcms.com{image_url}"
+            # image_url = f"http://172.25.183.139:5003{image_url}"
             # image_url = f"http://127.0.0.1:5003{image_url}"
 
         pics_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pics")
@@ -1085,10 +1085,9 @@ async def send_announcement_to_discord(request: Request):
                     channel_content = html_to_discord_markdown(channel_content)
                     logging.info(f"[DC] HTML 轉換後文案長度: {len(channel_content)}")
                     
-                    # 在文案最後加上對應語言的 AI 提示詞（除了英文）
-                    if lang != "en_US":
-                        # 使用映射後的語言代碼獲取 AI 提示詞
-                        api_lang_code = LANGUAGE_CODE_MAPPING.get(lang, lang)
+                    # 在文案最後加上對應語言的 AI 提示詞（英文不加：含 en 與 en_US）
+                    api_lang_code = LANGUAGE_CODE_MAPPING.get(lang, lang)
+                    if api_lang_code != "en_US":
                         ai_hint = AI_TRANSLATE_HINT.get(api_lang_code, AI_TRANSLATE_HINT["en_US"])
                         channel_content += ai_hint
                         logging.info(f"[DC] 添加 AI 提示詞: {api_lang_code}")
