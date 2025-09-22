@@ -1,0 +1,62 @@
+{
+  "common": {
+    "labels": {
+      "time": "時間",
+      "direction": "方向",
+      "entry_price": "進場價",
+      "exit_price": "出場價",
+      "current_price": "當前價",
+      "roi": "報酬率",
+      "total_trades": "總筆數",
+      "wins": "勝",
+      "losses": "負",
+      "win_rate": "勝率"
+    },
+    "sides": { "1": "做多", "2": "做空" },
+    "margin_types": { "1": "全倉", "2": "逐倉" },
+    "detail_line": "[關於 {trader_name}，更多操作>>]({url})"
+  },
+  "copy_signal": {
+    "title_open": "⚡️**{trader_name}** 開倉",
+    "title_close": "⚡️**{trader_name}** 平倉",
+    "pair_types": { "buy": "開倉", "sell": "平倉" },
+    "body": "📢{pair}  {margin_type} {leverage}X\n\n⏰{time_label}: {time} (UTC+0)\n➡️{direction_label}: {pair_type} {pair_side}\n🎯{entry_price_label}: {price}\n{detail_line}"
+  },
+  "holding": {
+    "title": "📊 **持倉報告**",
+    "summary": "⚡️**{trader_name}** 交易摘要（每 12 小時更新）",
+    "line_direction": "方向: {pair_side}",
+    "line_entry": "進場價: ${price}",
+    "line_current": "當前價: ${price}",
+    "line_roi": "報酬率: {roi}%",
+    "tp": "✅止盈價: ${price}",
+    "sl": "🛑止損價: ${price}"
+  },
+  "scalp": {
+    "title_update": "⚡️**{trader_name}** 止盈/止損更新",
+    "title_setting": "⚡️**{trader_name}** 止盈/止損設定",
+    "line_pair": "**{pair}** {pair_side}",
+    "line_time": "時間: {time} (UTC+0)",
+    "tp_update": "✅止盈價: ${old} → ${new}",
+    "sl_update": "🛑止損價: ${old} → ${new}",
+    "tp": "✅止盈價: ${price}",
+    "sl": "🛑止損價: ${price}"
+  },
+  "summary": {
+    "title": "📊 **交易總結**",
+    "close": "⚡️**{trader_name}** 平倉",
+    "line_time": "時間: {time} (UTC+0)",
+    "line_direction": "方向: 平倉 {pair_side}",
+    "line_roi": "報酬率: {roi}%",
+    "line_entry": "進場價: ${price}",
+    "line_exit": "出場價: ${price}"
+  },
+  "weekly": {
+    "title": "⚡️{trader_name} 每週績效報告",
+    "total_r": "{emoji} 總 R: {total_roi}%",
+    "total_trades": "📈 總筆數: {count}",
+    "wins": "✅ 勝: {count}",
+    "losses": "❌ 負: {count}",
+    "win_rate": "�� 勝率: {rate}%"
+  }
+} 

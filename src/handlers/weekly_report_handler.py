@@ -7,7 +7,7 @@ from fastapi import Request
 from typing import Dict, Any
 from .common import (
     get_push_targets, format_float, create_async_response,
-    generate_trader_summary_image
+    generate_trader_summary_image, get_i18n, normalize_locale
 )
 
 logger = logging.getLogger(__name__)
@@ -147,35 +147,34 @@ async def send_discord_weekly_report(channel, content: str, image_path: str, per
         return False
 
 def format_weekly_report_text(data: dict, include_link: bool = True) -> str:
-    """格式化週報文本"""
-    # 計算虧損筆數
+    """格式化週報文本（i18n）"""
+    i18n = get_i18n()
+    locale = normalize_locale(data.get('lang'))
+
     total_trades = int(data.get("total_trades", 0))
     win_trades = int(data.get("win_trades", 0))
     loss_trades = total_trades - win_trades
-    
-    # 格式化數值 - total_roi 需要乘上100以匹配圖片顯示
+
     total_roi = format_float(float(data.get("total_roi", 0)) * 100)
     win_rate = format_float(float(data.get("win_rate", 0)) * 100)
-    
-    # 判斷盈虧顏色
+
     is_positive = float(data.get("total_roi", 0)) >= 0
     roi_emoji = "🔥" if is_positive else "📉"
-    
+
     text = (
-        f"⚡️{data.get('trader_name', 'Trader')} Weekly Performance Report\n\n"
-        f"{roi_emoji} TOTAL R: {total_roi}%\n\n"
-        f"📈 Total Trades: {total_trades}\n"
-        f"✅ Wins: {win_trades}\n"
-        f"❌ Losses: {loss_trades}\n"
-        f"🏆 Win Rate: {win_rate}%"
+        i18n.render("weekly.title", locale, {"trader_name": data.get('trader_name', 'Trader')}) + "\n\n" +
+        i18n.render("weekly.total_r", locale, {"emoji": roi_emoji, "total_roi": total_roi}) + "\n\n" +
+        i18n.render("weekly.total_trades", locale, {"count": total_trades}) + "\n" +
+        i18n.render("weekly.wins", locale, {"count": win_trades}) + "\n" +
+        i18n.render("weekly.losses", locale, {"count": loss_trades}) + "\n" +
+        i18n.render("weekly.win_rate", locale, {"rate": win_rate})
     )
-    
+
     if include_link:
-        # 使用 Discord 格式創建可點擊的超連結
         trader_name = data.get('trader_name', 'Trader')
         detail_url = data.get('trader_detail_url', '')
-        text += f"\n\n[About {trader_name}, more actions>>]({detail_url})"
-    
+        text += "\n\n" + i18n.render("common.detail_line", locale, {"trader_name": trader_name, "url": detail_url})
+
     return text
 
 async def generate_weekly_report_image(data: dict) -> str:

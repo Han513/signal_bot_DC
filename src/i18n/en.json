@@ -1,0 +1,62 @@
+{
+  "common": {
+    "labels": {
+      "time": "Time",
+      "direction": "Direction",
+      "entry_price": "Entry Price",
+      "exit_price": "Exit Price",
+      "current_price": "Current Price",
+      "roi": "ROI",
+      "total_trades": "Total Trades",
+      "wins": "Wins",
+      "losses": "Losses",
+      "win_rate": "Win Rate"
+    },
+    "sides": { "1": "Long", "2": "Short" },
+    "margin_types": { "1": "Cross", "2": "Isolated" },
+    "detail_line": "[About {trader_name}, more actions>>]({url})"
+  },
+  "copy_signal": {
+    "title_open": "⚡️**{trader_name}** New Trade Open",
+    "title_close": "⚡️**{trader_name}** Close Trade",
+    "pair_types": { "buy": "Open", "sell": "Close" },
+    "body": "📢{pair}  {margin_type} {leverage}X\n\n⏰{time_label}: {time} (UTC+0)\n➡️{direction_label}: {pair_type} {pair_side}\n🎯{entry_price_label}: {price}\n{detail_line}"
+  },
+  "holding": {
+    "title": "📊 **Holding Report**",
+    "summary": "⚡️**{trader_name}** Trading Summary (Updated every 12 hours)",
+    "line_direction": "Direction: {pair_side}",
+    "line_entry": "Entry Price: ${price}",
+    "line_current": "Current Price: ${price}",
+    "line_roi": "ROI: {roi}%",
+    "tp": "✅TP Price: ${price}",
+    "sl": "🛑SL Price: ${price}"
+  },
+  "scalp": {
+    "title_update": "⚡️**{trader_name}** TP/SL Update",
+    "title_setting": "⚡️**{trader_name}** TP/SL Setting",
+    "line_pair": "**{pair}** {pair_side}",
+    "line_time": "Time: {time} (UTC+0)",
+    "tp_update": "✅TP Price: ${old} → ${new}",
+    "sl_update": "🛑SL Price: ${old} → ${new}",
+    "tp": "✅TP Price: ${price}",
+    "sl": "🛑SL Price: ${price}"
+  },
+  "summary": {
+    "title": "📊 **Trade Summary**",
+    "close": "⚡️**{trader_name}** Close Position",
+    "line_time": "Time: {time} (UTC+0)",
+    "line_direction": "Direction: Close {pair_side}",
+    "line_roi": "ROI: {roi}%",
+    "line_entry": "Entry Price: ${price}",
+    "line_exit": "Exit Price: ${price}"
+  },
+  "weekly": {
+    "title": "⚡️{trader_name} Weekly Performance Report",
+    "total_r": "{emoji} TOTAL R: {total_roi}%",
+    "total_trades": "📈 Total Trades: {count}",
+    "wins": "✅ Wins: {count}",
+    "losses": "❌ Losses: {count}",
+    "win_rate": "🏆 Win Rate: {rate}%"
+  }
+} 

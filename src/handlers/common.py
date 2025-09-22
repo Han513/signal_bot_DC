@@ -14,6 +14,26 @@ load_dotenv()
 
 SOCIAL_API = os.getenv("SOCIAL_API")
 
+# 新增: i18n 單例存取與語言正規化
+try:
+    from ..i18n_loader import I18n, normalize_locale
+except Exception:
+    try:
+        from i18n_loader import I18n, normalize_locale  # type: ignore
+    except Exception:
+        I18n = None  # 避免在開發過程中匯入失敗導致整檔報錯
+        def normalize_locale(lang):
+            return "en"
+
+_i18n_instance = None
+
+def get_i18n():
+    global _i18n_instance
+    if _i18n_instance is None and I18n is not None:
+        i18n_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'i18n'))
+        _i18n_instance = I18n(i18n_dir)
+    return _i18n_instance
+
 def escape_markdown_v2(text):
     """跳脫 Telegram MarkdownV2 特殊字符"""
     escape_chars = r'_ * [ ] ( ) ~ ` > # + - = | { } . !'.split()

@@ -7,7 +7,7 @@ import discord
 from dotenv import load_dotenv
 
 from .common import (
-    get_push_targets, format_float, format_timestamp_ms_to_utc
+    get_push_targets, format_float, format_timestamp_ms_to_utc, get_i18n, normalize_locale
 )
 
 load_dotenv()
@@ -152,69 +152,57 @@ async def send_discord_message(bot, channel_id: int, text: str) -> None:
         logger.error(f"[ScalpUpdate] 詳細錯誤: {traceback.format_exc()}")
 
 def format_scalp_update_text(data: dict, formatted_time: str, include_link: bool = True) -> str:
-    """格式化止盈止損更新文本"""
-    # 文案映射
-    pair_side_map = {"1": "Long", "2": "Short", 1: "Long", 2: "Short"}
-    
-    pair_side = pair_side_map.get(str(data.get("pair_side", "")), str(data.get("pair_side", "")))
-    
-    # 判斷是否為更新操作（有 previous 價格）
+    """格式化止盈止損更新文本（i18n）"""
+    i18n = get_i18n()
+    locale = normalize_locale(data.get('lang'))
+
+    pair_side = i18n.t(f"common.sides.{str(data.get('pair_side',''))}", locale)
+
     has_previous_tp = bool(data.get("previous_tp_price"))
     has_previous_sl = bool(data.get("previous_sl_price"))
     is_update = has_previous_tp or has_previous_sl
-    
-    # 格式化價格
+
     tp_price = str(data.get("tp_price", "")) if data.get("tp_price") else ""
     sl_price = str(data.get("sl_price", "")) if data.get("sl_price") else ""
     previous_tp_price = str(data.get("previous_tp_price", "")) if data.get("previous_tp_price") else ""
     previous_sl_price = str(data.get("previous_sl_price", "")) if data.get("previous_sl_price") else ""
-    
+
     if is_update:
-        # 更新操作文案
         text = (
-            f"⚡️**{data.get('trader_name', 'Trader')}** TP/SL Update\n\n"
-            f"**{data.get('pair', '')}** {pair_side}\n"
-            f"Time: {formatted_time} (UTC+0)"
+            i18n.render("scalp.title_update", locale, {"trader_name": data.get('trader_name', 'Trader')}) + "\n\n" +
+            i18n.render("scalp.line_pair", locale, {"pair": data.get('pair',''), "pair_side": pair_side}) + "\n" +
+            i18n.render("scalp.line_time", locale, {"time": formatted_time})
         )
-        
-        # 收集 TP/SL 更新行
         update_lines = []
         if tp_price and previous_tp_price:
-            update_lines.append(f"✅TP Price: ${previous_tp_price} → ${tp_price}")
+            update_lines.append(i18n.render("scalp.tp_update", locale, {"old": previous_tp_price, "new": tp_price}))
         elif tp_price:
-            update_lines.append(f"✅TP Price: ${tp_price}")
-        
+            update_lines.append(i18n.render("scalp.tp", locale, {"price": tp_price}))
         if sl_price and previous_sl_price:
-            update_lines.append(f"🛑SL Price: ${previous_sl_price} → ${sl_price}")
+            update_lines.append(i18n.render("scalp.sl_update", locale, {"old": previous_sl_price, "new": sl_price}))
         elif sl_price:
-            update_lines.append(f"🛑SL Price: ${sl_price}")
-        
+            update_lines.append(i18n.render("scalp.sl", locale, {"price": sl_price}))
         if update_lines:
             text += "\n" + "\n".join(update_lines)
     else:
-        # 設置操作文案
         text = (
-            f"⚡️**{data.get('trader_name', 'Trader')}** TP/SL Setting\n\n"
-            f"**{data.get('pair', '')}** {pair_side}\n"
-            f"Time: {formatted_time} (UTC+0)"
+            i18n.render("scalp.title_setting", locale, {"trader_name": data.get('trader_name', 'Trader')}) + "\n\n" +
+            i18n.render("scalp.line_pair", locale, {"pair": data.get('pair',''), "pair_side": pair_side}) + "\n" +
+            i18n.render("scalp.line_time", locale, {"time": formatted_time})
         )
-        
-        # 收集 TP/SL 設置行
         setting_lines = []
         if tp_price:
-            setting_lines.append(f"✅TP Price: ${tp_price}")
+            setting_lines.append(i18n.render("scalp.tp", locale, {"price": tp_price}))
         if sl_price:
-            setting_lines.append(f"🛑SL Price: ${sl_price}")
-        
+            setting_lines.append(i18n.render("scalp.sl", locale, {"price": sl_price}))
         if setting_lines:
             text += "\n" + "\n".join(setting_lines)
-    
+
     if include_link:
-        # 使用 Discord Markdown 格式創建可點擊的超連結
         trader_name = data.get('trader_name', 'Trader')
         detail_url = data.get('trader_detail_url', '')
-        text += f"\n\n[About {trader_name}, more actions>>]({detail_url})"
-    
+        text += "\n\n" + i18n.render("common.detail_line", locale, {"trader_name": trader_name, "url": detail_url})
+
     return text
 
 async def handle_send_scalp_update(request: Request, bot) -> Dict:

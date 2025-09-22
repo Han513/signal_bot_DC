@@ -7,7 +7,7 @@ import discord
 from dotenv import load_dotenv
 
 from .common import (
-    get_push_targets, format_float
+    get_push_targets, format_float, get_i18n, normalize_locale
 )
 
 load_dotenv()
@@ -176,92 +176,85 @@ async def send_discord_message(bot, channel_id: int, text: str) -> None:
         logger.error(f"[HoldingReport] 詳細錯誤: {traceback.format_exc()}")
 
 def format_holding_report_text(data: dict, include_link: bool = True) -> str:
-    """格式化持倉報告文本"""
-    # 文案映射
-    pair_side_map = {"1": "Long", "2": "Short", 1: "Long", 2: "Short"}
-    margin_type_map = {"1": "Cross", "2": "Isolated", 1: "Cross", 2: "Isolated"}
-    
-    pair_side = pair_side_map.get(str(data.get("pair_side", "")), str(data.get("pair_side", "")))
-    margin_type = margin_type_map.get(str(data.get("pair_margin_type", "")), str(data.get("pair_margin_type", "")))
-    
-    # 格式化數值
+    """格式化持倉報告文本（i18n）"""
+    i18n = get_i18n()
+    locale = normalize_locale(data.get('lang'))
+
+    pair_side = i18n.t(f"common.sides.{str(data.get('pair_side',''))}", locale)
+    margin_type = i18n.t(f"common.margin_types.{str(data.get('pair_margin_type',''))}", locale)
+
     entry_price = str(data.get("entry_price", 0))
     current_price = str(data.get("current_price", 0))
     roi = format_float(data.get("unrealized_pnl_percentage", 0) * 100)
     leverage = format_float(data.get("pair_leverage", 0))
-    
-    # 判斷是否有設置止盈止損
+
     has_tp = bool(data.get("tp_price"))
     has_sl = bool(data.get("sl_price"))
-    
+
     text = (
-        f"📊 **Holding Report**\n\n"
-        f"⚡️**{data.get('trader_name', 'Trader')}** Trading Summary (Updated every 12 hours)\n\n"
-        f"**{data.get('pair', '')}** {margin_type} **{leverage}X**\n"
-        f"Direction: {pair_side}\n"
-        f"Entry Price: ${entry_price}\n"
-        f"Current Price: ${current_price}\n"
-        f"ROI: {roi}%"
+        i18n.t("holding.title", locale) + "\n\n" +
+        i18n.render("holding.summary", locale, {"trader_name": data.get('trader_name', 'Trader')}) + "\n\n" +
+        f"**{data.get('pair', '')}** {margin_type} **{leverage}X**\n" +
+        i18n.render("holding.line_direction", locale, {"pair_side": pair_side}) + "\n" +
+        i18n.render("holding.line_entry", locale, {"price": entry_price}) + "\n" +
+        i18n.render("holding.line_current", locale, {"price": current_price}) + "\n" +
+        i18n.render("holding.line_roi", locale, {"roi": roi})
     )
-    
-    # 如果有設置止盈止損，添加相關信息
+
     tp_sl_lines = []
     if has_tp:
         tp_price = str(data.get("tp_price", 0))
-        tp_sl_lines.append(f"✅TP Price: ${tp_price}")
+        tp_sl_lines.append(i18n.render("holding.tp", locale, {"price": tp_price}))
     if has_sl:
         sl_price = str(data.get("sl_price", 0))
-        tp_sl_lines.append(f"🛑SL Price: ${sl_price}")
-    
+        tp_sl_lines.append(i18n.render("holding.sl", locale, {"price": sl_price}))
+
     if tp_sl_lines:
         text += "\n" + "\n".join(tp_sl_lines)
-    
+
     if include_link:
-        # 使用 Discord Markdown 格式創建可點擊的超連結
         trader_name = data.get('trader_name', 'Trader')
         detail_url = data.get('trader_detail_url', '')
-        text += f"\n\n[About {trader_name}, more actions>>]({detail_url})"
-    
+        text += "\n\n" + i18n.render("common.detail_line", locale, {"trader_name": trader_name, "url": detail_url})
+
     return text
 
 def format_holding_report_list_text(infos: list, trader: dict, include_link: bool = True) -> str:
     logger.info(f"[HoldingReport] format_holding_report_list_text called, infos={infos}")
     if not infos:
         return ""
+    i18n = get_i18n()
+    locale = normalize_locale(trader.get('lang') or (infos[0].get('lang') if infos else None))
     trader_name = trader.get('trader_name', 'Trader')
-    text = f"⚡️{trader_name} Trading Summary (Updated every 12 hours)\n\n"
+    text = i18n.render("holding.summary", locale, {"trader_name": trader_name}) + "\n\n"
     for i, data in enumerate(infos, 1):
-        pair_side_map = {"1": "Long", "2": "Short", 1: "Long", 2: "Short"}
-        margin_type_map = {"1": "Cross", "2": "Isolated", 1: "Cross", 2: "Isolated"}
-        pair_side = pair_side_map.get(str(data.get("pair_side", "")), str(data.get("pair_side", "")))
-        margin_type = margin_type_map.get(str(data.get("pair_margin_type", "")), str(data.get("pair_margin_type", "")))
+        pair_side = i18n.t(f"common.sides.{str(data.get('pair_side',''))}", locale)
+        margin_type = i18n.t(f"common.margin_types.{str(data.get('pair_margin_type',''))}", locale)
         entry_price = str(data.get("entry_price", 0))
         current_price = str(data.get("current_price", 0))
         roi = format_float(float(data.get("unrealized_pnl_percentage", 0)) * 100)
         leverage = format_float(data.get("pair_leverage", 0))
         has_tp = data.get("tp_price") not in (None, "None", "null", "")
         has_sl = data.get("sl_price") not in (None, "None", "null", "")
-        text += (
-            f"**{i}. {data.get('pair', '')} {margin_type} {leverage}X**\n"
-            f"➡️Direction: {pair_side}\n"
-            f"🎯Entry Price: ${entry_price}\n"
-            f"📊Current Price: ${current_price}\n"
-            f"🚀ROI: {roi}%"
-        )
+        text += f"**{i}. {data.get('pair', '')} {margin_type} {leverage}X**\n"
+        text += i18n.render("holding.line_direction", locale, {"pair_side": pair_side}) + "\n"
+        text += i18n.render("holding.line_entry", locale, {"price": entry_price}) + "\n"
+        text += i18n.render("holding.line_current", locale, {"price": current_price}) + "\n"
+        text += i18n.render("holding.line_roi", locale, {"roi": roi})
         tp_sl_lines = []
         if has_tp:
             tp_price = str(data.get("tp_price", 0))
-            tp_sl_lines.append(f"✅TP Price: ${tp_price}")
+            tp_sl_lines.append(i18n.render("holding.tp", locale, {"price": tp_price}))
         if has_sl:
             sl_price = str(data.get("sl_price", 0))
-            tp_sl_lines.append(f"🛑SL Price: ${sl_price}")
+            tp_sl_lines.append(i18n.render("holding.sl", locale, {"price": sl_price}))
         if tp_sl_lines:
             text += "\n" + "\n".join(tp_sl_lines)
         text += "\n\n"
     text = text.rstrip('\n')
     if include_link:
         detail_url = trader.get('trader_detail_url', '')
-        text += f"\n\n[About {trader_name}, more actions>>]({detail_url})"
+        text += "\n\n" + i18n.render("common.detail_line", locale, {"trader_name": trader_name, "url": detail_url})
     return text
 
 async def handle_holding_report(request: Request, bot) -> Dict:

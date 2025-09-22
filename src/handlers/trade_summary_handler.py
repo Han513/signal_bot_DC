@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from PIL import Image, ImageDraw, ImageFont
 
 from .common import (
-    get_push_targets, format_float, format_timestamp_ms_to_utc
+    get_push_targets, format_float, format_timestamp_ms_to_utc, get_i18n, normalize_locale
 )
 
 load_dotenv()
@@ -166,40 +166,36 @@ async def send_discord_message_with_image(bot, channel_id: int, text: str, image
         logger.error(f"[TradeSummary] 詳細錯誤: {traceback.format_exc()}")
 
 def format_trade_summary_text(data: dict, include_link: bool = True) -> str:
-    """格式化交易總結文本"""
-    # 文案映射
-    pair_side_map = {"1": "Long", "2": "Short", 1: "Long", 2: "Short"}
-    margin_type_map = {"1": "Cross", "2": "Isolated", 1: "Cross", 2: "Isolated"}
-    
-    pair_side = pair_side_map.get(str(data.get("pair_side", "")), str(data.get("pair_side", "")))
-    margin_type = margin_type_map.get(str(data.get("pair_margin_type", "")), str(data.get("pair_margin_type", "")))
-    
-    # 格式化數值
+    """格式化交易總結文本（i18n）"""
+    i18n = get_i18n()
+    locale = normalize_locale(data.get('lang'))
+
+    pair_side = i18n.t(f"common.sides.{str(data.get('pair_side',''))}", locale)
+    margin_type = i18n.t(f"common.margin_types.{str(data.get('pair_margin_type',''))}", locale)
+
     entry_price = str(data.get("entry_price", 0))
     exit_price = str(data.get("exit_price", 0))
     realized_pnl = format_float(float(data.get("realized_pnl_percentage", 0)) * 100)
     leverage = format_float(data.get("pair_leverage", 0))
-    
-    # 格式化時間
+
     formatted_time = format_timestamp_ms_to_utc(data.get('close_time'))
-    
+
     text = (
-        f"📊 **Trade Summary**\n\n"
-        f"⚡️**{data.get('trader_name', 'Trader')}** Close Position\n\n"
-        f"**{data.get('pair', '')}** {margin_type} **{leverage}X**\n\n"
-        f"Time: {formatted_time} (UTC+0)\n"
-        f"Direction: Close {pair_side}\n"
-        f"ROI: {realized_pnl}%\n"
-        f"Entry Price: ${entry_price}\n"
-        f"Exit Price: ${exit_price}"
+        i18n.t("summary.title", locale) + "\n\n" +
+        i18n.render("summary.close", locale, {"trader_name": data.get('trader_name', 'Trader')}) + "\n\n" +
+        f"**{data.get('pair', '')}** {margin_type} **{leverage}X**\n\n" +
+        i18n.render("summary.line_time", locale, {"time": formatted_time}) + "\n" +
+        i18n.render("summary.line_direction", locale, {"pair_side": pair_side}) + "\n" +
+        i18n.render("summary.line_roi", locale, {"roi": realized_pnl}) + "\n" +
+        i18n.render("summary.line_entry", locale, {"price": entry_price}) + "\n" +
+        i18n.render("summary.line_exit", locale, {"price": exit_price})
     )
-    
+
     if include_link:
-        # 使用 Discord Markdown 格式創建可點擊的超連結
         trader_name = data.get('trader_name', 'Trader')
         detail_url = data.get('trader_detail_url', '')
-        text += f"\n\n[About {trader_name}, more actions>>]({detail_url})"
-    
+        text += "\n\n" + i18n.render("common.detail_line", locale, {"trader_name": trader_name, "url": detail_url})
+
     return text
 
 def generate_trade_summary_image(data: dict) -> str:

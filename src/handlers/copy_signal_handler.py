@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from .common import (
     get_push_targets, generate_trader_summary_image, format_timestamp_ms_to_utc,
-    create_async_response
+    create_async_response, get_i18n, normalize_locale
 )
 
 load_dotenv()
@@ -95,37 +95,51 @@ async def process_copy_signal_discord(data: dict, bot) -> None:
         formatted_time = format_timestamp_ms_to_utc(data.get('time'))
         logger.info(f"[CopySignal] 格式化時間: {formatted_time}")
 
-        # 文案映射
-        pair_type_map = {"buy": "Open", "sell": "Close"}
-        pair_side_map = {"1": "Long", "2": "Short", 1: "Long", 2: "Short"}
-        margin_type_map = {"1": "Cross", "2": "Isolated", 1: "Cross", 2: "Isolated"}
-
         # 準備發送任務
         tasks = []
         logger.info(f"[CopySignal] 準備發送到 {len(push_targets)} 個頻道")
         
+        # 載入 i18n 與語言
+        i18n = get_i18n()
+        req_locale = normalize_locale(data.get('lang'))
+        
         for i, (channel_id, topic_id, jump) in enumerate(push_targets):
             logger.info(f"[CopySignal] 處理第 {i+1} 個頻道: {channel_id}, topic: {topic_id}, jump: {jump}")
-            
-            # 取得映射值
-            pair_type_str = pair_type_map.get(str(data.get("pair_type", "")).lower(), str(data.get("pair_type", "")))
-            pair_side_str = pair_side_map.get(str(data.get("pair_side", "")), str(data.get("pair_side", "")))
-            margin_type_str = margin_type_map.get(str(data.get("pair_margin_type", "")), str(data.get("pair_margin_type", "")))
 
-            # 根據 jump 決定是否顯示 trader_detail_url
-            if jump == "1":
-                detail_line = f"[About {data['trader_name']}, more actions>>]({data['trader_detail_url']})"
-            else:
-                detail_line = ""
+            # 映射方向/倉位/保證金類型
+            pair_type_key = (data.get("pair_type") or "").lower()
+            pair_type_text = i18n.t(f"copy_signal.pair_types.{pair_type_key}", req_locale)
+            pair_side_text = i18n.t(f"common.sides.{str(data.get('pair_side', ''))}", req_locale)
+            margin_type_text = i18n.t(f"common.margin_types.{str(data.get('pair_margin_type',''))}", req_locale)
 
-            caption = (
-                f"⚡️**{data['trader_name']}** New Trade Open\n\n"
-                f"📢{data['pair']}  {margin_type_str} {data['pair_leverage']}X\n\n"
-                f"⏰Time: {formatted_time} (UTC+0)\n"
-                f"➡️Direction: {pair_type_str} {pair_side_str}\n"
-                f"🎯Entry Price: {data['price']}\n"
-                f"{detail_line}"
+            # 決定標題
+            title_key = "copy_signal.title_open" if pair_type_key == "buy" else "copy_signal.title_close"
+            title = i18n.render(title_key, req_locale, {"trader_name": data["trader_name"]})
+
+            # 根據 jump 決定是否顯示連結
+            detail_line = i18n.render(
+                "common.detail_line", req_locale,
+                {"trader_name": data['trader_name'], "url": data['trader_detail_url']}
+            ) if jump == "1" else ""
+
+            body = i18n.render(
+                "copy_signal.body", req_locale,
+                {
+                    "pair": data["pair"],
+                    "margin_type": margin_type_text,
+                    "leverage": data["pair_leverage"],
+                    "time_label": i18n.t("common.labels.time", req_locale),
+                    "time": formatted_time,
+                    "direction_label": i18n.t("common.labels.direction", req_locale),
+                    "pair_type": pair_type_text,
+                    "pair_side": pair_side_text,
+                    "entry_price_label": i18n.t("common.labels.entry_price", req_locale),
+                    "price": data["price"],
+                    "detail_line": detail_line
+                }
             )
+
+            caption = f"{title}\n\n{body}"
             
             logger.info(f"[CopySignal] 為頻道 {channel_id} 準備消息內容")
             tasks.append(

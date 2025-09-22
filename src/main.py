@@ -38,7 +38,15 @@ MESSAGE_API_URL = os.getenv("MESSAGE_API_URL")
 UPDATE_MESSAGE_API_URL = os.getenv("UPDATE_MESSAGE_API_URL")
 
 # Bot initialization
-TOKEN = os.getenv("Discord_TOKEN")
+TOKEN = (
+    os.getenv("DISCORD_TOKEN")
+    or os.getenv("Discord_TOKEN")
+    or os.getenv("BOT_TOKEN")
+)
+if not TOKEN:
+    raise RuntimeError(
+        "Discord bot token missing. Set DISCORD_TOKEN/Discord_TOKEN/BOT_TOKEN in environment or .env"
+    )
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
