@@ -87,7 +87,7 @@ async def process_weekly_report(data: dict, bot) -> None:
 
         # 準備發送任務
         tasks = []
-        for chat_id, topic_id, jump in push_targets:
+        for chat_id, topic_id, jump, channel_lang in push_targets:
             try:
                 channel = bot.get_channel(int(chat_id))
                 if not channel:
@@ -102,7 +102,7 @@ async def process_weekly_report(data: dict, bot) -> None:
                 
                 # 格式化消息 - 根據 jump 值決定是否包含連結
                 include_link = (jump == "1")
-                content = format_weekly_report_text(data, include_link)
+                content = format_weekly_report_text(data, include_link, channel_lang)
                 
                 # 創建發送任務
                 task = send_discord_weekly_report(
@@ -146,17 +146,23 @@ async def send_discord_weekly_report(channel, content: str, image_path: str, per
         logger.error(f"發送週報到頻道 {channel.id} 失敗: {e}")
         return False
 
-def format_weekly_report_text(data: dict, include_link: bool = True) -> str:
+def format_weekly_report_text(data: dict, include_link: bool = True, lang: str = None) -> str:
     """格式化週報文本（i18n）"""
     i18n = get_i18n()
-    locale = normalize_locale(data.get('lang'))
+    locale = normalize_locale(lang)
 
     total_trades = int(data.get("total_trades", 0))
     win_trades = int(data.get("win_trades", 0))
-    loss_trades = total_trades - win_trades
+    win_rate = float(data.get("win_rate", 0))
+    loss_trades = int(data.get("loss_trades", max(total_trades - win_trades, 0)))
 
+    # CSV 顯示為百分比，80% 就是 80
     total_roi = format_float(float(data.get("total_roi", 0)) * 100)
-    win_rate = format_float(float(data.get("win_rate", 0)) * 100)
+    # 勝率以 wins/total 自算，避免傳入為 0.8 造成 80*100
+    if total_trades > 0:
+        win_rate = format_float((win_rate) * 100)
+    else:
+        win_rate = "0"
 
     is_positive = float(data.get("total_roi", 0)) >= 0
     roi_emoji = "🔥" if is_positive else "📉"

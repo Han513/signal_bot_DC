@@ -1,0 +1,64 @@
+{
+  "common": {
+    "labels": {
+      "time": "الوقت",
+      "direction": "الاتجاه",
+      "entry_price": "سعر الدخول",
+      "exit_price": "سعر الخروج",
+      "current_price": "السعر الحالي",
+      "roi": "العائد (ROI)",
+      "total_trades": "إجمالي الصفقات",
+      "wins": "الرابحة",
+      "losses": "الخاسرة",
+      "win_rate": "معدل النجاح"
+    },
+    "sides": { "1": "طويل", "2": "قصير" },
+    "margin_types": { "1": "متقاطع", "2": "معزول" },
+    "detail_line": "[حول {trader_name}، المزيد من الإجراءات>>]({url})"
+  },
+  "copy_signal": {
+    "title_open": "⚡️**{trader_name}** فتح صفقة جديدة",
+    "title_close": "⚡️**{trader_name}** إغلاق الصفقة",
+    "pair_types": { "buy": "فتح", "sell": "إغلاق" },
+    "body": "📢{pair}  {margin_type} {leverage}X\n\n⏰{time_label}: {time} (UTC+0)\n➡️{direction_label}: {pair_type} {pair_side}\n🎯{entry_price_label}: {price}\n{detail_line}"
+  },
+  "holding": {
+    "title": "📊 **تقرير المركز**",
+    "summary": "⚡️**{trader_name}** ملخص التداول (يُحدَّث كل 12 ساعة)",
+    "line_direction": "الاتجاه: {pair_side}",
+    "line_entry": "سعر الدخول: ${price}",
+    "line_current": "السعر الحالي: ${price}",
+    "line_roi": "العائد: {roi}%",
+    "tp": "✅سعر جني الأرباح: ${price}",
+    "sl": "🛑سعر إيقاف الخسارة: ${price}"
+  },
+  "scalp": {
+    "title_update": "⚡️**{trader_name}** تحديث TP/SL",
+    "title_setting": "⚡️**{trader_name}** إعداد TP/SL",
+    "line_pair": "**{pair}** {pair_side}",
+    "line_time": "الوقت: {time} (UTC+0)",
+    "tp_update": "✅سعر TP: ${old} تغير إلى ${new}",
+    "sl_update": "🛑سعر SL: ${old} تغير إلى ${new}",
+    "tp": "✅سعر TP: ${price}",
+    "sl": "🛑سعر SL: ${price}"
+  },
+  "summary": {
+    "title": "📊 **ملخص الصفقة**",
+    "close": "⚡️**{trader_name}** إغلاق الصفقة",
+    "line_time": "الوقت: {time} (UTC+0)",
+    "line_direction": "الاتجاه: إغلاق {pair_side}",
+    "line_roi": "العائد: {roi}%",
+    "line_entry": "سعر الدخول: ${price}",
+    "line_exit": "سعر الخروج: ${price}"
+  },
+  "weekly": {
+    "title": "⚡️تقرير الأداء الأسبوعي لـ {trader_name}",
+    "total_r": "🔥 العائد: {total_roi}%",
+    "total_trades": "📈 إجمالي الصفقات: {count}",
+    "wins": "✅ الرابحة: {count}",
+    "losses": "❌ الخاسرة: {count}",
+    "win_rate": "🏆 معدل النجاح: {rate}%"
+  }
+}
+
+

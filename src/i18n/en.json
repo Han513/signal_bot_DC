@@ -18,7 +18,7 @@
   },
   "copy_signal": {
     "title_open": "⚡️**{trader_name}** New Trade Open",
-    "title_close": "⚡️**{trader_name}** Close Trade",
+    "title_close": "⚡️**{trader_name}** Close Position",
     "pair_types": { "buy": "Open", "sell": "Close" },
     "body": "📢{pair}  {margin_type} {leverage}X\n\n⏰{time_label}: {time} (UTC+0)\n➡️{direction_label}: {pair_type} {pair_side}\n🎯{entry_price_label}: {price}\n{detail_line}"
   },
@@ -37,8 +37,8 @@
     "title_setting": "⚡️**{trader_name}** TP/SL Setting",
     "line_pair": "**{pair}** {pair_side}",
     "line_time": "Time: {time} (UTC+0)",
-    "tp_update": "✅TP Price: ${old} → ${new}",
-    "sl_update": "🛑SL Price: ${old} → ${new}",
+    "tp_update": "✅TP Price: ${old} change to ${new}",
+    "sl_update": "🛑SL Price: ${old} change to ${new}",
     "tp": "✅TP Price: ${price}",
     "sl": "🛑SL Price: ${price}"
   },
@@ -53,7 +53,7 @@
   },
   "weekly": {
     "title": "⚡️{trader_name} Weekly Performance Report",
-    "total_r": "{emoji} TOTAL R: {total_roi}%",
+    "total_r": "🔥 ROI: {total_roi}%",
     "total_trades": "📈 Total Trades: {count}",
     "wins": "✅ Wins: {count}",
     "losses": "❌ Losses: {count}",

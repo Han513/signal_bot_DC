@@ -1,0 +1,64 @@
+{
+  "common": {
+    "labels": {
+      "time": "Tid",
+      "direction": "Retning",
+      "entry_price": "Indgangspris",
+      "exit_price": "Udgangspris",
+      "current_price": "Nuværende pris",
+      "roi": "ROI",
+      "total_trades": "Samlet antal Handler",
+      "wins": "Gevinster",
+      "losses": "Tab",
+      "win_rate": "Vinderrate"
+    },
+    "sides": { "1": "Lang", "2": "Kort" },
+    "margin_types": { "1": "Cross", "2": "Isoleret" },
+    "detail_line": "[Om {trader_name}, flere handlinger>>]({url})"
+  },
+  "copy_signal": {
+    "title_open": "⚡️**{trader_name}** Ny Handel Åbnet",
+    "title_close": "⚡️**{trader_name}** Luk Position",
+    "pair_types": { "buy": "Åbn", "sell": "Luk" },
+    "body": "📢{pair}  {margin_type} {leverage}X\n\n⏰{time_label}: {time} (UTC+0)\n➡️{direction_label}: {pair_type} {pair_side}\n🎯{entry_price_label}: {price}\n{detail_line}"
+  },
+  "holding": {
+    "title": "📊 **Positionsrapport**",
+    "summary": "⚡️**{trader_name}** Handelsoversigt (Opdateres hver 12. time)",
+    "line_direction": "Retning: {pair_side}",
+    "line_entry": "Indgangspris: ${price}",
+    "line_current": "Nuværende pris: ${price}",
+    "line_roi": "ROI: {roi}%",
+    "tp": "✅TP-pris: ${price}",
+    "sl": "🛑SL-pris: ${price}"
+  },
+  "scalp": {
+    "title_update": "⚡️**{trader_name}** TP/SL-Opdatering",
+    "title_setting": "⚡️**{trader_name}** TP/SL-Indstilling",
+    "line_pair": "**{pair}** {pair_side}",
+    "line_time": "Tid: {time} (UTC+0)",
+    "tp_update": "✅TP-pris: ${old} ændret til ${new}",
+    "sl_update": "🛑SL-pris: ${old} ændret til ${new}",
+    "tp": "✅TP-pris: ${price}",
+    "sl": "🛑SL-pris: ${price}"
+  },
+  "summary": {
+    "title": "📊 **Handelsoversigt**",
+    "close": "⚡️**{trader_name}** Luk Position",
+    "line_time": "Tid: {time} (UTC+0)",
+    "line_direction": "Retning: Luk {pair_side}",
+    "line_roi": "ROI: {roi}%",
+    "line_entry": "Indgangspris: ${price}",
+    "line_exit": "Udgangspris: ${price}"
+  },
+  "weekly": {
+    "title": "⚡️{trader_name} Ugentlig Præstationsrapport",
+    "total_r": "🔥 ROI: {total_roi}%",
+    "total_trades": "📈 Samlet antal Handler: {count}",
+    "wins": "✅ Gevinster: {count}",
+    "losses": "❌ Tab: {count}",
+    "win_rate": "🏆 Vinderrate: {rate}%"
+  }
+}
+
+

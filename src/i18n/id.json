@@ -1,0 +1,64 @@
+{
+  "common": {
+    "labels": {
+      "time": "Waktu",
+      "direction": "Arah",
+      "entry_price": "Harga Masuk",
+      "exit_price": "Harga Keluar",
+      "current_price": "Harga Saat Ini",
+      "roi": "ROI",
+      "total_trades": "Total Perdagangan",
+      "wins": "Menang",
+      "losses": "Kalah",
+      "win_rate": "Rasio Menang"
+    },
+    "sides": { "1": "Long", "2": "Pendek" },
+    "margin_types": { "1": "Cross", "2": "Isolated" },
+    "detail_line": "[Tentang {trader_name}, lebih banyak tindakan>>]({url})"
+  },
+  "copy_signal": {
+    "title_open": "⚡️**{trader_name}** Buka Transaksi Baru",
+    "title_close": "⚡️**{trader_name}** Tutup Posisi",
+    "pair_types": { "buy": "Buka", "sell": "Tutup" },
+    "body": "📢{pair}  {margin_type} {leverage}X\n\n⏰{time_label}: {time} (UTC+0)\n➡️{direction_label}: {pair_type} {pair_side}\n🎯{entry_price_label}: {price}\n{detail_line}"
+  },
+  "holding": {
+    "title": "📊 **Laporan Posisi**",
+    "summary": "⚡️**{trader_name}** Ringkasan Perdagangan (Diperbarui setiap 12 jam)",
+    "line_direction": "Arah: {pair_side}",
+    "line_entry": "Harga Masuk: ${price}",
+    "line_current": "Harga Saat Ini: ${price}",
+    "line_roi": "ROI: {roi}%",
+    "tp": "✅Harga TP: ${price}",
+    "sl": "🛑Harga SL: ${price}"
+  },
+  "scalp": {
+    "title_update": "⚡️**{trader_name}** Update TP/SL",
+    "title_setting": "⚡️**{trader_name}** Pengaturan TP/SL",
+    "line_pair": "**{pair}** {pair_side}",
+    "line_time": "Waktu: {time} (UTC+0)",
+    "tp_update": "✅Harga TP: ${old} ubah menjadi ${new}",
+    "sl_update": "🛑Harga SL: ${old} ubah menjadi ${new}",
+    "tp": "✅Harga TP: ${price}",
+    "sl": "🛑Harga SL: ${price}"
+  },
+  "summary": {
+    "title": "📊 **Ringkasan Perdagangan**",
+    "close": "⚡️**{trader_name}** Tutup Posisi",
+    "line_time": "Waktu: {time} (UTC+0)",
+    "line_direction": "Arah: Tutup {pair_side}",
+    "line_roi": "ROI: {roi}%",
+    "line_entry": "Harga Masuk: ${price}",
+    "line_exit": "Harga Keluar: ${price}"
+  },
+  "weekly": {
+    "title": "⚡️{trader_name} Report Performa Mingguan",
+    "total_r": "🔥 ROI: {total_roi}%",
+    "total_trades": "📈 Total Perdagangan: {count}",
+    "wins": "✅ Wins: {count}",
+    "losses": "❌ Losses: {count}",
+    "win_rate": "🏆 Win Rate: {rate}%"
+  }
+}
+
+

@@ -1,0 +1,64 @@
+{
+  "common": {
+    "labels": {
+      "time": "Thời Gian",
+      "direction": "Hướng",
+      "entry_price": "Giá Vào",
+      "exit_price": "Giá Thoát",
+      "current_price": "Giá Hiện Tại",
+      "roi": "ROI",
+      "total_trades": "Tổng Số Giao Dịch",
+      "wins": "Thắng",
+      "losses": "Thua",
+      "win_rate": "Tỷ Lệ Thắng"
+    },
+    "sides": { "1": "Dài", "2": "Ngắn" },
+    "margin_types": { "1": "Cross", "2": "Isolated" },
+    "detail_line": "[Về {trader_name}, thêm hành động>>]({url})"
+  },
+  "copy_signal": {
+    "title_open": "⚡️**{trader_name}** Giao Dịch Mới Mở",
+    "title_close": "⚡️**{trader_name}** Đóng Vị Thế",
+    "pair_types": { "buy": "Mở", "sell": "Đóng" },
+    "body": "📢{pair}  {margin_type} {leverage}X\n\n⏰{time_label}: {time} (UTC+0)\n➡️{direction_label}: {pair_type} {pair_side}\n🎯{entry_price_label}: {price}\n{detail_line}"
+  },
+  "holding": {
+    "title": "📊 **Báo Cáo Vị Thế**",
+    "summary": "⚡️**{trader_name}** Tóm Tắt Giao Dịch (Cập nhật mỗi 12 giờ)",
+    "line_direction": "Hướng: {pair_side}",
+    "line_entry": "Giá Vào: ${price}",
+    "line_current": "Giá Hiện Tại: ${price}",
+    "line_roi": "ROI: {roi}%",
+    "tp": "✅Giá TP: ${price}",
+    "sl": "🛑Giá SL: ${price}"
+  },
+  "scalp": {
+    "title_update": "⚡️**{trader_name}** Cập Nhật TP/SL",
+    "title_setting": "⚡️**{trader_name}** Cài Đặt TP/SL",
+    "line_pair": "**{pair}** {pair_side}",
+    "line_time": "Thời Gian: {time} (UTC+0)",
+    "tp_update": "✅Giá TP: ${old} đổi thành ${new}",
+    "sl_update": "🛑Giá SL: ${old} đổi thành ${new}",
+    "tp": "✅Giá TP: ${price}",
+    "sl": "🛑Giá SL: ${price}"
+  },
+  "summary": {
+    "title": "📊 **Tóm Tắt Giao Dịch**",
+    "close": "⚡️**{trader_name}** Đóng Vị Thế",
+    "line_time": "Thời Gian: {time} (UTC+0)",
+    "line_direction": "Hướng: Đóng {pair_side}",
+    "line_roi": "ROI: {roi}%",
+    "line_entry": "Giá Vào: ${price}",
+    "line_exit": "Giá Thoát: ${price}"
+  },
+  "weekly": {
+    "title": "⚡️{trader_name} Báo Cáo Hiệu Suất Hàng Tuần",
+    "total_r": "🔥 ROI: {total_roi}%",
+    "total_trades": "📈 Tổng Số Giao Dịch: {count}",
+    "wins": "✅ Thắng: {count}",
+    "losses": "❌ Thua: {count}",
+    "win_rate": "🏆 Tỷ Lệ Thắng: {rate}%"
+  }
+}
+
+

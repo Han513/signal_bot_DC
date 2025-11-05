@@ -1,0 +1,64 @@
+{
+  "common": {
+    "labels": {
+      "time": "Oras",
+      "direction": "Direksyon",
+      "entry_price": "Presyo ng Entry",
+      "exit_price": "Presyo ng Exit",
+      "current_price": "Kasalukuyang Presyo",
+      "roi": "ROI",
+      "total_trades": "Kabuuang Trades",
+      "wins": "Panalo",
+      "losses": "Talo",
+      "win_rate": "Win Rate"
+    },
+    "sides": { "1": "Long", "2": "Short" },
+    "margin_types": { "1": "Cross", "2": "Isolated" },
+    "detail_line": "[Tungkol kay {trader_name}, higit pang aksyon>>]({url})"
+  },
+  "copy_signal": {
+    "title_open": "⚡️**{trader_name}** Bagong Trade Na Buksan",
+    "title_close": "⚡️**{trader_name}** Isara ang Posisyon",
+    "pair_types": { "buy": "Bukas", "sell": "Isara" },
+    "body": "📢{pair}  {margin_type} {leverage}X\n\n⏰{time_label}: {time} (UTC+0)\n➡️{direction_label}: {pair_type} {pair_side}\n🎯{entry_price_label}: {price}\n{detail_line}"
+  },
+  "holding": {
+    "title": "📊 **Ulat sa Posisyon**",
+    "summary": "⚡️**{trader_name}** Buod ng Trading (Ina-update bawat 12 oras)",
+    "line_direction": "Direksyon: {pair_side}",
+    "line_entry": "Presyo ng Entry: ${price}",
+    "line_current": "Kasalukuyang Presyo: ${price}",
+    "line_roi": "ROI: {roi}%",
+    "tp": "✅Presyo ng TP: ${price}",
+    "sl": "🛑Presyo ng SL: ${price}"
+  },
+  "scalp": {
+    "title_update": "⚡️**{trader_name}** TP/SL Update",
+    "title_setting": "⚡️**{trader_name}** TP/SL Setting",
+    "line_pair": "**{pair}** {pair_side}",
+    "line_time": "Oras: {time} (UTC+0)",
+    "tp_update": "✅Presyo ng TP: ${old} naging ${new}",
+    "sl_update": "🛑Presyo ng SL: ${old} naging ${new}",
+    "tp": "✅Presyo ng TP: ${price}",
+    "sl": "🛑Presyo ng SL: ${price}"
+  },
+  "summary": {
+    "title": "📊 **Buod ng Trading**",
+    "close": "⚡️**{trader_name}** Isara ang Posisyon",
+    "line_time": "Oras: {time} (UTC+0)",
+    "line_direction": "Direksyon: Isara {pair_side}",
+    "line_roi": "ROI: {roi}%",
+    "line_entry": "Presyo ng Entry: ${price}",
+    "line_exit": "Presyo ng Exit: ${price}"
+  },
+  "weekly": {
+    "title": "⚡️{trader_name} Lingguhang Performance Report",
+    "total_r": "🔥 ROI: {total_roi}%",
+    "total_trades": "📈 Kabuuang Trades: {count}",
+    "wins": "✅ Panalo: {count}",
+    "losses": "❌ Talo: {count}",
+    "win_rate": "🏆 Win Rate: {rate}%"
+  }
+}
+
+

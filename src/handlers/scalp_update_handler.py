@@ -82,12 +82,12 @@ async def process_scalp_update_discord(data: dict, bot) -> None:
         tasks = []
         logger.info(f"[ScalpUpdate] 準備發送到 {len(push_targets)} 個頻道")
         
-        for i, (channel_id, topic_id, jump) in enumerate(push_targets):
-            logger.info(f"[ScalpUpdate] 處理第 {i+1} 個頻道: {channel_id}, topic: {topic_id}, jump: {jump}")
+        for i, (channel_id, topic_id, jump, channel_lang) in enumerate(push_targets):
+            logger.info(f"[ScalpUpdate] 處理第 {i+1} 個頻道: {channel_id}, topic: {topic_id}, jump: {jump}, lang: {channel_lang}")
             
             # 根據 jump 值決定是否包含連結
             include_link = (jump == "1")
-            text = format_scalp_update_text(data, formatted_time, include_link)
+            text = format_scalp_update_text(data, formatted_time, include_link, channel_lang)
             logger.info(f"[ScalpUpdate] 為頻道 {channel_id} 準備消息內容")
             
             tasks.append(
@@ -151,10 +151,10 @@ async def send_discord_message(bot, channel_id: int, text: str) -> None:
         import traceback
         logger.error(f"[ScalpUpdate] 詳細錯誤: {traceback.format_exc()}")
 
-def format_scalp_update_text(data: dict, formatted_time: str, include_link: bool = True) -> str:
+def format_scalp_update_text(data: dict, formatted_time: str, include_link: bool = True, lang: str = None) -> str:
     """格式化止盈止損更新文本（i18n）"""
     i18n = get_i18n()
-    locale = normalize_locale(data.get('lang'))
+    locale = normalize_locale(lang)
 
     pair_side = i18n.t(f"common.sides.{str(data.get('pair_side',''))}", locale)
 

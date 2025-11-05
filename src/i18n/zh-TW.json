@@ -24,7 +24,7 @@
   },
   "holding": {
     "title": "📊 **持倉報告**",
-    "summary": "⚡️**{trader_name}** 交易摘要（每 12 小時更新）",
+    "summary": "⚡️**{trader_name}** 帶單列表（每 12 小時更新）",
     "line_direction": "方向: {pair_side}",
     "line_entry": "進場價: ${price}",
     "line_current": "當前價: ${price}",
@@ -33,14 +33,14 @@
     "sl": "🛑止損價: ${price}"
   },
   "scalp": {
-    "title_update": "⚡️**{trader_name}** 止盈/止損更新",
-    "title_setting": "⚡️**{trader_name}** 止盈/止損設定",
+    "title_update": "⚡️**{trader_name}** 更新止盈止損",
+    "title_setting": "⚡️**{trader_name}** 設置止盈止損",
     "line_pair": "**{pair}** {pair_side}",
     "line_time": "時間: {time} (UTC+0)",
-    "tp_update": "✅止盈價: ${old} → ${new}",
-    "sl_update": "🛑止損價: ${old} → ${new}",
-    "tp": "✅止盈價: ${price}",
-    "sl": "🛑止損價: ${price}"
+    "tp_update": "✅止盈價格: ${old} 修改為 ${new}",
+    "sl_update": "🛑止損價格: ${old} 修改為 ${new}",
+    "tp": "✅止盈價格: ${price}",
+    "sl": "🛑止損價格: ${price}"
   },
   "summary": {
     "title": "📊 **交易總結**",
@@ -52,11 +52,11 @@
     "line_exit": "出場價: ${price}"
   },
   "weekly": {
-    "title": "⚡️{trader_name} 每週績效報告",
-    "total_r": "{emoji} 總 R: {total_roi}%",
-    "total_trades": "📈 總筆數: {count}",
-    "wins": "✅ 勝: {count}",
-    "losses": "❌ 負: {count}",
-    "win_rate": "�� 勝率: {rate}%"
+    "title": "⚡️{trader_name} 本週表現",
+    "total_r": "🔥 收益率: {total_roi}%",
+    "total_trades": "📈 帶單筆數: {count}",
+    "wins": "✅ 盈利筆數: {count}",
+    "losses": "❌ 虧損筆數: {count}",
+    "win_rate": "🏆 勝率: {rate}%"
   }
 } 

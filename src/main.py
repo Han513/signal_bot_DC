@@ -23,7 +23,7 @@ from handlers.trade_summary_handler import handle_send_trade_summary
 from handlers.scalp_update_handler import handle_send_scalp_update
 from handlers.holding_report_handler import handle_holding_report
 from handlers.weekly_report_handler import handle_weekly_report
-from multilingual_utils import get_multilingual_content, AI_TRANSLATE_HINT, LANGUAGE_CODE_MAPPING
+from multilingual_utils import get_multilingual_content, AI_TRANSLATE_HINT, LANGUAGE_CODE_MAPPING, get_uid_already_verified_message
 
 logging.basicConfig(level=logging.INFO)
 
@@ -270,7 +270,29 @@ class UIDInputModal(Modal):
             return
         
         if verification_status == "warning":
-            await interaction.followup.send("This UID has already been verified.", ephemeral=True)
+            # 調用 Verify API 取得群組語言，僅用於本段多語言自定義文案
+            payload = {
+                "code": uid,
+                "verifyGroup": verify_channel_id,
+                "brand": "BYD",
+                "type": "DISCORD"
+            }
+            lang = "en"
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(VERIFY_API, data=payload) as response:
+                        data = await response.json()
+                        # 嘗試多種結構的 lang 位置
+                        lang = (
+                            data.get("lang")
+                            or (data.get("data", {}).get("lang") if isinstance(data.get("data"), dict) else None)
+                            or "en"
+                        )
+            except Exception:
+                lang = "en"
+
+            message = get_uid_already_verified_message(lang)
+            await interaction.followup.send(message, ephemeral=True)
             return
         
         if verification_status == "not_verified" or verification_status == "reverified":
@@ -286,7 +308,12 @@ class UIDInputModal(Modal):
                 async with session.post(VERIFY_API, data=payload) as response:
                     data = await response.json()
                     print(f"response: {data}")
-                    api_message = data.get("data", "Verification failed. Please try again.")
+                    # 兼容新結構：data: { lang, msg }
+                    payload_data = data.get("data")
+                    if isinstance(payload_data, dict):
+                        api_message = payload_data.get("msg") or "Verification failed. Please try again."
+                    else:
+                        api_message = payload_data or data.get("message") or "Verification failed. Please try again."
                     
                     admin_mention = interaction.guild.owner.mention if interaction.guild.owner else "@admin"
                     api_message = api_message.replace("@{admin}", admin_mention)

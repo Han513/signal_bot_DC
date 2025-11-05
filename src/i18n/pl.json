@@ -1,0 +1,64 @@
+{
+  "common": {
+    "labels": {
+      "time": "Czas",
+      "direction": "Kierunek",
+      "entry_price": "Cena Wejścia",
+      "exit_price": "Cena Wyjścia",
+      "current_price": "Bieżąca Cena",
+      "roi": "ROI",
+      "total_trades": "Łączna liczba transakcji",
+      "wins": "Wygrane",
+      "losses": "Przegrane",
+      "win_rate": "Wskaźnik Wygranych"
+    },
+    "sides": { "1": "Długo", "2": "Krótko" },
+    "margin_types": { "1": "Cross", "2": "Isolated" },
+    "detail_line": "[O {trader_name}, więcej akcji>>]({url})"
+  },
+  "copy_signal": {
+    "title_open": "⚡️**{trader_name}** Nowa Transakcja Otwarta",
+    "title_close": "⚡️**{trader_name}** Zamknij Pozycję",
+    "pair_types": { "buy": "Otwórz", "sell": "Zamknij" },
+    "body": "📢{pair}  {margin_type} {leverage}X\n\n⏰{time_label}: {time} (UTC+0)\n➡️{direction_label}: {pair_type} {pair_side}\n🎯{entry_price_label}: {price}\n{detail_line}"
+  },
+  "holding": {
+    "title": "📊 **Raport z Pozycji**",
+    "summary": "⚡️**{trader_name}** Podsumowanie Handlu (Aktualizowane co 12 godziny)",
+    "line_direction": "Kierunek: {pair_side}",
+    "line_entry": "Cena Wejścia: ${price}",
+    "line_current": "Bieżąca Cena: ${price}",
+    "line_roi": "ROI: {roi}%",
+    "tp": "✅Cena TP: ${price}",
+    "sl": "🛑Cena SL: ${price}"
+  },
+  "scalp": {
+    "title_update": "⚡️**{trader_name}** Aktualizacja TP/SL",
+    "title_setting": "⚡️**{trader_name}** Ustawienia TP/SL",
+    "line_pair": "**{pair}** {pair_side}",
+    "line_time": "Czas: {time} (UTC+0)",
+    "tp_update": "✅Cena TP: ${old} zmieniona na ${new}",
+    "sl_update": "🛑Cena SL: ${old} zmieniona na ${new}",
+    "tp": "✅Cena TP: ${price}",
+    "sl": "🛑Cena SL: ${price}"
+  },
+  "summary": {
+    "title": "📊 **Podsumowanie Transakcji**",
+    "close": "⚡️**{trader_name}** Zamknij Pozycję",
+    "line_time": "Czas: {time} (UTC+0)",
+    "line_direction": "Kierunek: Zamknij {pair_side}",
+    "line_roi": "ROI: {roi}%",
+    "line_entry": "Cena Wejścia: ${price}",
+    "line_exit": "Cena Wyjścia: ${price}"
+  },
+  "weekly": {
+    "title": "⚡️{trader_name} Cotygodniowy Raport Wyników",
+    "total_r": "🔥 ROI: {total_roi}%",
+    "total_trades": "📈 Łączna liczba transakcji: {count}",
+    "wins": "✅ Wygrane: {count}",
+    "losses": "❌ Przegrane: {count}",
+    "win_rate": "🏆 Wskaźnik Wygranych: {rate}%"
+  }
+}
+
+

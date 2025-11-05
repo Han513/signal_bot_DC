@@ -112,3 +112,38 @@ def get_multilingual_content(post, lang):
     else:
         hint = AI_TRANSLATE_HINT.get(api_lang_code, AI_TRANSLATE_HINT["en_US"])
         return content + hint 
+
+def get_uid_already_verified_message(lang: str) -> str:
+    """根據短語言碼返回『此 UID 已被驗證過』的多語言文案。默認英文。
+
+    支援的短碼示例：en, zh, ru, id, ja, pt, fr, es, tr, de, it, ar, fa, vi, tl, th, da, pl, ko
+    若傳入未知或為空，回退到英文。
+    """
+    messages = {
+        "en": "This UID has already been verified.",
+        "zh": "此 UID 已被驗證過",
+        "ru": "Этот UID уже был верифицирован.",
+        "id": "UID ini telah diverifikasi.",
+        "ja": "このUIDは既に認証済みです。",
+        "pt": "Este UID já foi verificado.",
+        "fr": "Cet UID a déjà été vérifié.",
+        "es": "Este UID ya ha sido verificado.",
+        "tr": "Bu UID zaten doğrulandı.",
+        "de": "Diese UID wurde bereits verifiziert.",
+        "it": "Questo UID è già stato verificato.",
+        "ar": "تم التحقق من هذا المعرف مسبقًا.",
+        "fa": "این UID قبلاً تأیید شده است.",
+        "vi": "UID này đã được xác minh.",
+        "tl": "Ang UID na ito ay na-verify na.",
+        "th": "UID นี้ได้รับการยืนยันแล้ว",
+        "da": "Denne UID er allerede blevet bekræftet.",
+        "pl": "Ten UID został już zweryfikowany.",
+        "ko": "이 UID는 이미 인증되었습니다.",
+    }
+
+    if not lang:
+        return messages["en"]
+
+    # 正規化：若傳入如 "en_US"，截取前綴以匹配短碼表
+    short = lang.split("_")[0].lower()
+    return messages.get(short, messages["en"])

@@ -1,0 +1,64 @@
+{
+  "common": {
+    "labels": {
+      "time": "時間",
+      "direction": "方向",
+      "entry_price": "エントリー価格",
+      "exit_price": "決済価格",
+      "current_price": "現在価格",
+      "roi": "ROI",
+      "total_trades": "総取引数",
+      "wins": "勝利",
+      "losses": "失敗",
+      "win_rate": "勝率"
+    },
+    "sides": { "1": "ロング", "2": "ショート" },
+    "margin_types": { "1": "Cross", "2": "Isolated" },
+    "detail_line": "[{trader_name}について, その他の操作はこちら>>]({url})"
+  },
+  "copy_signal": {
+    "title_open": "⚡️**{trader_name}** 新規取引開始",
+    "title_close": "⚡️**{trader_name}** ポジションをクローズ",
+    "pair_types": { "buy": "オープン", "sell": "クローズ" },
+    "body": "📢{pair}  {margin_type} {leverage}X\n\n⏰{time_label}: {time} (UTC+0)\n➡️{direction_label}: {pair_type} {pair_side}\n🎯{entry_price_label}: {price}\n{detail_line}"
+  },
+  "holding": {
+    "title": "📊 **保有レポート**",
+    "summary": "⚡️**{trader_name}** 取引概要（12時間ごとに更新）",
+    "line_direction": "方向: {pair_side}",
+    "line_entry": "エントリー価格: ${price}",
+    "line_current": "現在価格: ${price}",
+    "line_roi": "ROI: {roi}%",
+    "tp": "✅TP 価格: ${price}",
+    "sl": "🛑SL 価格: ${price}"
+  },
+  "scalp": {
+    "title_update": "⚡️**{trader_name}** TP/SL 更新",
+    "title_setting": "⚡️**{trader_name}** TP/SL 設定",
+    "line_pair": "**{pair}** {pair_side}",
+    "line_time": "時間: {time} (UTC+0)",
+    "tp_update": "✅TP 価格: ${old} が ${new}に変更",
+    "sl_update": "🛑SL 価格: ${old} が ${new}に変更",
+    "tp": "✅TP 価格: ${price}",
+    "sl": "🛑SL 価格: ${price}"
+  },
+  "summary": {
+    "title": "📊 **取引サマリー**",
+    "close": "⚡️**{trader_name}** ポジションをクローズ",
+    "line_time": "時間: {time} (UTC+0)",
+    "line_direction": "方向: クローズ {pair_side}",
+    "line_roi": "ROI: {roi}%",
+    "line_entry": "エントリー価格: ${price}",
+    "line_exit": "決済価格: ${price}"
+  },
+  "weekly": {
+    "title": "⚡️{trader_name} 週間パフォーマンスレポート",
+    "total_r": "🔥 ROI: {total_roi}%",
+    "total_trades": "📈 総取引数: {count}",
+    "wins": "✅ 勝利: {count}",
+    "losses": "❌ 失敗: {count}",
+    "win_rate": "🏆 勝率: {rate}%"
+  }
+}
+
+

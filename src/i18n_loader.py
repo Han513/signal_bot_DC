@@ -3,7 +3,11 @@ import json
 from typing import Any, Dict
 
 # 將外部傳入的 lang 正規化為固定集合: 'en' | 'zh-CN' | 'zh-TW'
-CANONICAL_LOCALES = {"en", "zh-CN", "zh-TW"}
+CANONICAL_LOCALES = {
+    "en", "zh-CN", "zh-TW",
+    "ru", "id", "ja", "pt", "fr", "es", "tr", "de", "it",
+    "ar", "fa", "vi", "tl", "th", "da", "pl", "ko"
+}
 _LOCALE_ALIASES = {
     # 英文
     "en": "en", "en-us": "en", "en_us": "en", "en_US": "en", "EN": "en",
@@ -11,6 +15,24 @@ _LOCALE_ALIASES = {
     "zh-cn": "zh-CN", "zh_cn": "zh-CN", "zhCN": "zh-CN", "zh_CN": "zh-CN", "zh-Hans": "zh-CN",
     # 繁體
     "zh-tw": "zh-TW", "zh_tw": "zh-TW", "zhTW": "zh-TW", "zh_TW": "zh-TW", "zh-Hant": "zh-TW",
+    # 其他語言
+    "ru": "ru", "ru-ru": "ru",
+    "id": "id", "id-id": "id",
+    "ja": "ja", "ja-jp": "ja",
+    "pt": "pt", "pt-pt": "pt", "pt-br": "pt", "pt_BR": "pt",
+    "fr": "fr", "fr-fr": "fr",
+    "es": "es", "es-es": "es", "es-419": "es",
+    "tr": "tr", "tr-tr": "tr",
+    "de": "de", "de-de": "de",
+    "it": "it", "it-it": "it",
+    "ar": "ar", "ar-sa": "ar",
+    "fa": "fa", "fa-ir": "fa", "fa_IR": "fa",
+    "vi": "vi", "vi-vn": "vi",
+    "tl": "tl", "fil": "tl",
+    "th": "th", "th-th": "th",
+    "da": "da", "da-dk": "da",
+    "pl": "pl", "pl-pl": "pl",
+    "ko": "ko", "ko-kr": "ko"
 }
 
 DEFAULT_LOCALE = "en"

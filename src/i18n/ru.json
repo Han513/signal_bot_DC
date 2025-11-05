@@ -1,0 +1,64 @@
+{
+  "common": {
+    "labels": {
+      "time": "Время",
+      "direction": "Направление",
+      "entry_price": "Цена входа",
+      "exit_price": "Цена выхода",
+      "current_price": "Текущая цена",
+      "roi": "ROI",
+      "total_trades": "Всего сделок",
+      "wins": "Выигрыши",
+      "losses": "Проигрыши",
+      "win_rate": "Процент побед"
+    },
+    "sides": { "1": "Лонг", "2": "Шорт" },
+    "margin_types": { "1": "Cross", "2": "Isolated" },
+    "detail_line": "[О {trader_name}, больше действий>>]({url})"
+  },
+  "copy_signal": {
+    "title_open": "⚡️**{trader_name}** Открыл Новую Сделку",
+    "title_close": "⚡️**{trader_name}** Закрыл Позицию",
+    "pair_types": { "buy": "Открыть", "sell": "Закрыть" },
+    "body": "📢{pair}  {margin_type} {leverage}X\n\n⏰{time_label}: {time} (UTC+0)\n➡️{direction_label}: {pair_type} {pair_side}\n🎯{entry_price_label}: {price}\n{detail_line}"
+  },
+  "holding": {
+    "title": "📊 **Отчет по Позиции**",
+    "summary": "⚡️**{trader_name}** Итоги Торговли (обновляется каждые 12 часа)",
+    "line_direction": "Направление: {pair_side}",
+    "line_entry": "Цена входа: ${price}",
+    "line_current": "Текущая цена: ${price}",
+    "line_roi": "ROI: {roi}%",
+    "tp": "✅TP Цена: ${price}",
+    "sl": "🛑SL Цена: ${price}"
+  },
+  "scalp": {
+    "title_update": "⚡️**{trader_name}** Обновление TP/SL",
+    "title_setting": "⚡️**{trader_name}** Настройка TP/SL",
+    "line_pair": "**{pair}** {pair_side}",
+    "line_time": "Время: {time} (UTC+0)",
+    "tp_update": "✅TP Цена: ${old} изменена на ${new}",
+    "sl_update": "🛑SL Цена: ${old} изменена на ${new}",
+    "tp": "✅TP Цена: ${price}",
+    "sl": "🛑SL Цена: ${price}"
+  },
+  "summary": {
+    "title": "📊 **Сводка по Сделке**",
+    "close": "⚡️**{trader_name}** Закрыл Позицию",
+    "line_time": "Время: {time} (UTC+0)",
+    "line_direction": "Направление: Закрыть {pair_side}",
+    "line_roi": "ROI: {roi}%",
+    "line_entry": "Цена входа: ${price}",
+    "line_exit": "Цена выхода: ${price}"
+  },
+  "weekly": {
+    "title": "⚡️{trader_name} Еженедельный Отчет о Результатах",
+    "total_r": "🔥 ROI: {total_roi}%",
+    "total_trades": "📈 Всего сделок: {count}",
+    "wins": "✅ Выигрыши: {count}",
+    "losses": "❌ Проигрыши: {count}",
+    "win_rate": "🏆 Процент побед: {rate}%"
+  }
+}
+
+

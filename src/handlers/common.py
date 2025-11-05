@@ -65,7 +65,7 @@ def format_timestamp_ms_to_utc(ms):
 
 async def generate_trader_summary_image(trader_url, trader_name, pnl_percentage, pnl):
     """產生交易員統計圖片"""
-    logging.info(f"[CopySignal] 開始產生交易員統計圖片: {trader_name}")
+    # logging.info(f"[CopySignal] 開始產生交易員統計圖片: {trader_name}")
     
     # 基本設定
     W, H = 1200, 675
@@ -73,24 +73,24 @@ async def generate_trader_summary_image(trader_url, trader_name, pnl_percentage,
 
     # 背景圖：若存在 copy_trade.png 則使用，否則建立黑底
     bg_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'pics', 'copy_trade.png'))
-    logging.info(f"[CopySignal] 背景圖片路徑: {bg_path}")
+    # logging.info(f"[CopySignal] 背景圖片路徑: {bg_path}")
     
     if os.path.exists(bg_path):
         try:
             img = Image.open(bg_path).convert('RGB')
             img = img.resize((W, H))
-            logging.info(f"[CopySignal] 成功載入背景圖片")
+            # logging.info(f"[CopySignal] 成功載入背景圖片")
         except Exception as e:
             logging.warning(f"[CopySignal] 載入背景圖片失敗: {e}")
             img = Image.new("RGB", (W, H), (0, 0, 0))
     else:
-        logging.info(f"[CopySignal] 背景圖片不存在，使用黑色背景")
+        # logging.info(f"[CopySignal] 背景圖片不存在，使用黑色背景")
         img = Image.new("RGB", (W, H), (0, 0, 0))
 
     draw = ImageDraw.Draw(img)
 
     # 下載頭像
-    logging.info(f"[CopySignal] 開始下載頭像: {trader_url}")
+    # logging.info(f"[CopySignal] 開始下載頭像: {trader_url}")
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
         async with aiohttp.ClientSession() as session:
@@ -98,7 +98,7 @@ async def generate_trader_summary_image(trader_url, trader_name, pnl_percentage,
                 if resp.status == 200:
                     avatar_data = await resp.read()
                     avatar = Image.open(BytesIO(avatar_data)).resize((avatar_size, avatar_size)).convert("RGBA")
-                    logging.info(f"[CopySignal] 成功下載頭像")
+                    # logging.info(f"[CopySignal] 成功下載頭像")
                 else:
                     raise Exception(f"Failed to download avatar: {resp.status}")
     except Exception as e:
@@ -109,16 +109,16 @@ async def generate_trader_summary_image(trader_url, trader_name, pnl_percentage,
     ImageDraw.Draw(mask).ellipse((0, 0, avatar_size, avatar_size), fill=255)
     avatar.putalpha(mask)
     img.paste(avatar, (100, 150), avatar)
-    logging.info(f"[CopySignal] 頭像處理完成")
+    # logging.info(f"[CopySignal] 頭像處理完成")
 
     # 字體
     font_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'text'))
     bold_font_path = os.path.join(font_dir, 'BRHendrix-Bold-BF6556d1b5459d3.otf')
     noto_font_path = os.path.join(font_dir, 'NotoSansSC-Bold.ttf')
     
-    logging.info(f"[CopySignal] 字體目錄: {font_dir}")
-    logging.info(f"[CopySignal] 粗體字體路徑: {bold_font_path}")
-    logging.info(f"[CopySignal] Noto字體路徑: {noto_font_path}")
+    # logging.info(f"[CopySignal] 字體目錄: {font_dir}")
+    # logging.info(f"[CopySignal] 粗體字體路徑: {bold_font_path}")
+    # logging.info(f"[CopySignal] Noto字體路徑: {noto_font_path}")
     
     def load_font(p, size):
         try:
@@ -136,7 +136,7 @@ async def generate_trader_summary_image(trader_url, trader_name, pnl_percentage,
             return False
 
     title_font_path = bold_font_path if is_all_ascii(trader_name) else noto_font_path
-    logging.info(f"[CopySignal] 使用字體: {title_font_path} (交易員名稱: {trader_name})")
+    # logging.info(f"[CopySignal] 使用字體: {title_font_path} (交易員名稱: {trader_name})")
     
     title_font = load_font(title_font_path, 70)
     number_font = load_font(bold_font_path, 100)
@@ -172,41 +172,43 @@ async def generate_trader_summary_image(trader_url, trader_name, pnl_percentage,
     draw.text((100, 415 + 100 + 5), "7D ROI", font=label_font, fill=(200, 200, 200))
     draw.text((550, 415 + 100 + 5), "7D PNL", font=label_font, fill=(200, 200, 200))
 
-    logging.info(f"[CopySignal] 圖片文字繪製完成 - ROI: {roi_text}, PNL: {pnl_text}")
+    # logging.info(f"[CopySignal] 圖片文字繪製完成 - ROI: {roi_text}, PNL: {pnl_text}")
 
     tmp_path = "/tmp/trader_summary_discord.png"
-    logging.info(f"[CopySignal] 保存圖片到: {tmp_path}")
+    # logging.info(f"[CopySignal] 保存圖片到: {tmp_path}")
     try:
         img.save(tmp_path, quality=95)
-        logging.info(f"[CopySignal] 圖片保存成功")
+        # logging.info(f"[CopySignal] 圖片保存成功")
         return tmp_path
     except Exception as e:
         logging.error(f"[CopySignal] 圖片保存失敗: {e}")
         return None
 
-async def get_push_targets(trader_uid: str) -> List[Tuple[int, str, str]]:
-    """獲取推送目標列表，返回 (channel_id, topic_id, jump) 的列表"""
-    logging.info(f"[CopySignal] 開始獲取推送目標，交易員 UID: {trader_uid}")
+async def get_push_targets(trader_uid: str) -> List[Tuple[int, str, str, str]]:
+    """獲取推送目標列表，返回 (channel_id, topic_id, jump, lang) 的列表"""
+    # logging.info(f"[CopySignal] 開始獲取推送目標，交易員 UID: {trader_uid}")
     try:
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         payload = {"brand": "BYD", "type": "DISCORD"}
         
-        logging.info(f"[CopySignal] 調用 SOCIAL_API: {SOCIAL_API}")
+        # logging.info(f"[CopySignal] 調用 SOCIAL_API: {SOCIAL_API}")
         async with aiohttp.ClientSession() as session:
             async with session.post(SOCIAL_API, headers=headers, data=payload) as resp:
-                logging.info(f"[CopySignal] SOCIAL_API 回應狀態: {resp.status}")
+                # logging.info(f"[CopySignal] SOCIAL_API 回應狀態: {resp.status}")
                 if resp.status != 200:
                     logging.error(f"[CopySignal] SOCIAL_API 回應錯誤: {resp.status}")
                     return []
                 
                 social_data = await resp.json()
-                logging.info(f"[CopySignal] 成功獲取社交數據，包含 {len(social_data.get('data', []))} 個群組")
+                # logging.info(f"[CopySignal] 成功獲取社交數據，包含 {len(social_data.get('data', []))} 個群組")
 
         push_targets = []
         for i, social in enumerate(social_data.get("data", [])):
-            logging.info(f"[CopySignal] 處理第 {i+1} 個群組: {social.get('name', 'Unknown')}")
+            # logging.info(f"[CopySignal] 處理第 {i+1} 個群組: {social.get('name', 'Unknown')}")
+            group_lang_raw = social.get("lang") or "en"
+            group_lang = normalize_locale(group_lang_raw)
             for j, chat in enumerate(social.get("chats", [])):
-                logging.info(f"[CopySignal] 檢查聊天 {j+1}: type={chat.get('type')}, enable={chat.get('enable')}, traderUid={chat.get('traderUid')}")
+                # logging.info(f"[CopySignal] 檢查聊天 {j+1}: type={chat.get('type')}, enable={chat.get('enable')}, traderUid={chat.get('traderUid')}")
                 if (
                     chat.get("type") == "copy"
                     and chat.get("enable")
@@ -224,11 +226,12 @@ async def get_push_targets(trader_uid: str) -> List[Tuple[int, str, str]]:
                         push_targets.append((
                             int(cid),
                             str(chat.get("topicId", "")),
-                            jump_value
+                            jump_value,
+                            group_lang
                         ))
-                        logging.info(f"[CopySignal] 找到匹配的推送目標: channel_id={cid}, topic_id={chat.get('topicId')}, jump={jump_value}")
+                        # logging.info(f"[CopySignal] 找到匹配的推送目標: channel_id={cid}, topic_id={chat.get('topicId')}, jump={jump_value}, lang={group_lang}")
 
-        logging.info(f"[CopySignal] 總共找到 {len(push_targets)} 個推送目標")
+        # logging.info(f"[CopySignal] 總共找到 {len(push_targets)} 個推送目標")
         return push_targets
     except Exception as e:
         logging.error(f"[CopySignal] 獲取推送目標失敗: {type(e).__name__} - {e}")

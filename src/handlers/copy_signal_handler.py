@@ -99,12 +99,14 @@ async def process_copy_signal_discord(data: dict, bot) -> None:
         tasks = []
         logger.info(f"[CopySignal] 準備發送到 {len(push_targets)} 個頻道")
         
-        # 載入 i18n 與語言
+        # 載入 i18n
         i18n = get_i18n()
-        req_locale = normalize_locale(data.get('lang'))
         
-        for i, (channel_id, topic_id, jump) in enumerate(push_targets):
-            logger.info(f"[CopySignal] 處理第 {i+1} 個頻道: {channel_id}, topic: {topic_id}, jump: {jump}")
+        for i, (channel_id, topic_id, jump, channel_lang) in enumerate(push_targets):
+            logger.info(f"[CopySignal] 處理第 {i+1} 個頻道: {channel_id}, topic: {topic_id}, jump: {jump}, lang: {channel_lang}")
+
+            # 每個頻道使用群組語言
+            req_locale = normalize_locale(channel_lang)
 
             # 映射方向/倉位/保證金類型
             pair_type_key = (data.get("pair_type") or "").lower()

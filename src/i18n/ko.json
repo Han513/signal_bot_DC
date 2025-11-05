@@ -1,0 +1,64 @@
+{
+  "common": {
+    "labels": {
+      "time": "시간",
+      "direction": "방향",
+      "entry_price": "진입 가격",
+      "exit_price": "청산 가격",
+      "current_price": "현재 가격",
+      "roi": "ROI",
+      "total_trades": "모든 거래",
+      "wins": "수익",
+      "losses": "손실",
+      "win_rate": "승률"
+    },
+    "sides": { "1": "롱", "2": "숏" },
+    "margin_types": { "1": "크로스", "2": "아이솔" },
+    "detail_line": "[About {trader_name}, more actions>>]({url})"
+  },
+  "copy_signal": {
+    "title_open": "⚡️**{trader_name}** 포지션 오픈",
+    "title_close": "⚡️**{trader_name}** 포지션 청산",
+    "pair_types": { "buy": "오픈", "sell": "청산" },
+    "body": "📢{pair}  {margin_type} {leverage}X\n\n⏰{time_label}: {time} (UTC+0)\n➡️{direction_label}: {pair_type} {pair_side}\n🎯{entry_price_label}: {price}\n{detail_line}"
+  },
+  "holding": {
+    "title": "📊 **보유 보고서**",
+    "summary": "⚡️**{trader_name}** 거래 요약 (12시간마다 업데이트)",
+    "line_direction": "방향: {pair_side}",
+    "line_entry": "진입 가격: ${price}",
+    "line_current": "현재 가격: ${price}",
+    "line_roi": "ROI: {roi}%",
+    "tp": "✅TP 가격: ${price}",
+    "sl": "🛑SL 가격: ${price}"
+  },
+  "scalp": {
+    "title_update": "⚡️**{trader_name}** TP/SL 업뎃",
+    "title_setting": "⚡️**{trader_name}** TP/SL 설정",
+    "line_pair": "**{pair}** {pair_side}",
+    "line_time": "시간: {time} (UTC+0)",
+    "tp_update": "✅TP 가격: ${old} , ${new}으로 변경",
+    "sl_update": "🛑SL 가격: ${old} , ${new}으로 변경",
+    "tp": "✅TP 가격: ${price}",
+    "sl": "🛑SL 가격: ${price}"
+  },
+  "summary": {
+    "title": "📊 **거래 요약**",
+    "close": "⚡️**{trader_name}** 포지션 청산",
+    "line_time": "시간: {time} (UTC+0)",
+    "line_direction": "방향: 청산 {pair_side}",
+    "line_roi": "ROI: {roi}%",
+    "line_entry": "진입 가격: ${price}",
+    "line_exit": "청산 가격: ${price}"
+  },
+  "weekly": {
+    "title": "⚡️{trader_name} 주간 퍼포먼스",
+    "total_r": "🔥 ROI: {total_roi}%",
+    "total_trades": "📈 모든 거래: {count}",
+    "wins": "✅ 수익: {count}",
+    "losses": "❌ 손실: {count}",
+    "win_rate": "🏆 승률: {rate}%"
+  }
+}
+
+

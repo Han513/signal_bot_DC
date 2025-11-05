@@ -1,0 +1,64 @@
+{
+  "common": {
+    "labels": {
+      "time": "Zaman",
+      "direction": "Yön",
+      "entry_price": "Giriş Fiyatı",
+      "exit_price": "Çıkış Fiyatı",
+      "current_price": "Güncel Fiyat",
+      "roi": "ROI",
+      "total_trades": "Toplam İşlem",
+      "wins": "Kazançlar",
+      "losses": "Kayıplar",
+      "win_rate": "Kazanma Oranı"
+    },
+    "sides": { "1": "Uzun", "2": "Kısa" },
+    "margin_types": { "1": "Cross", "2": "Isolated" },
+    "detail_line": "[{trader_name} hakkında, daha fazla işlem>>]({url})"
+  },
+  "copy_signal": {
+    "title_open": "⚡️**{trader_name}** Yeni İşlem Açtı",
+    "title_close": "⚡️**{trader_name}** Pozisyonu Kapattı",
+    "pair_types": { "buy": "Aç", "sell": "Kapat" },
+    "body": "📢{pair}  {margin_type} {leverage}X\n\n⏰{time_label}: {time} (UTC+0)\n➡️{direction_label}: {pair_type} {pair_side}\n🎯{entry_price_label}: {price}\n{detail_line}"
+  },
+  "holding": {
+    "title": "📊 **Pozisyon Raporu**",
+    "summary": "⚡️**{trader_name}** İşlem Özeti (Her 12 saatte bir güncellenir)",
+    "line_direction": "Yön: {pair_side}",
+    "line_entry": "Giriş Fiyatı: ${price}",
+    "line_current": "Güncel Fiyat: ${price}",
+    "line_roi": "ROI: {roi}%",
+    "tp": "✅TP Fiyatı: ${price}",
+    "sl": "🛑SL Fiyatı: ${price}"
+  },
+  "scalp": {
+    "title_update": "⚡️**{trader_name}** TP/SL Güncellemesi",
+    "title_setting": "⚡️**{trader_name}** TP/SL Ayarı",
+    "line_pair": "**{pair}** {pair_side}",
+    "line_time": "Zaman: {time} (UTC+0)",
+    "tp_update": "✅TP Fiyatı: ${old} değişti → ${new}",
+    "sl_update": "🛑SL Fiyatı: ${old} değişti → ${new}",
+    "tp": "✅TP Fiyatı: ${price}",
+    "sl": "🛑SL Fiyatı: ${price}"
+  },
+  "summary": {
+    "title": "📊 **İşlem Özeti**",
+    "close": "⚡️**{trader_name}** Pozisyonu Kapattı",
+    "line_time": "Zaman: {time} (UTC+0)",
+    "line_direction": "Yön: Kapat {pair_side}",
+    "line_roi": "ROI: {roi}%",
+    "line_entry": "Giriş Fiyatı: ${price}",
+    "line_exit": "Çıkış Fiyatı: ${price}"
+  },
+  "weekly": {
+    "title": "⚡️{trader_name} Haftalık Performans Raporu",
+    "total_r": "🔥 ROI: {total_roi}%",
+    "total_trades": "📈 Toplam İşlem: {count}",
+    "wins": "✅ Kazançlar: {count}",
+    "losses": "❌ Kayıplar: {count}",
+    "win_rate": "🏆 Kazanma Oranı: {rate}%"
+  }
+}
+
+

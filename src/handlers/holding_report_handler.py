@@ -15,7 +15,11 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 def validate_holding_report(data) -> None:
+    print(f"[HoldingReport] validate_holding_report called, data={data}")
     """支持批量trader+infos结构的校验"""
+    # 兼容 {"data": [...]} 的包裝格式
+    if isinstance(data, dict) and isinstance(data.get("data"), list):
+        data = data["data"]
     if isinstance(data, list):
         if not data:
             raise ValueError("列表不能為空")
@@ -95,8 +99,16 @@ async def process_holding_report_discord(data: dict, bot) -> None:
     """背景協程：處理持倉報告推送到 Discord，支援多trader，每個trader合併所有infos發一條訊息"""
     logger.info("[HoldingReport] 開始執行背景處理任務")
     try:
-        # 支援多個 trader
-        traders = data if isinstance(data, list) else [data]
+        # 支援多個 trader，並兼容 {"data": [...]} 包裝
+        if isinstance(data, dict) and isinstance(data.get("data"), list):
+            traders = data["data"]
+        elif isinstance(data, list):
+            traders = data
+        elif isinstance(data, dict):
+            traders = [data]
+        else:
+            logger.error(f"[HoldingReport] 不支持的資料格式: {type(data)}")
+            return
         for trader in traders:
             trader_uid = str(trader["trader_uid"])
             logger.info(f"[HoldingReport] 處理交易員 UID: {trader_uid}")
@@ -120,18 +132,18 @@ async def process_holding_report_discord(data: dict, bot) -> None:
 
 async def send_holding_to_all_targets(infos, trader, push_targets, bot):
     tasks = []
-    for channel_id, topic_id, jump in push_targets:
+    for channel_id, topic_id, jump, channel_lang in push_targets:
         # 根據 jump 值決定是否包含連結
         include_link = (jump == "1")
         
         if infos and isinstance(infos, list):
             logger.info(f"[HoldingReport] infos 長度: {len(infos)}")
             # 合併所有 infos，發一條訊息
-            text = format_holding_report_list_text(infos, trader, include_link)
+            text = format_holding_report_list_text(infos, trader, include_link, channel_lang)
         else:
             logger.info(f"[HoldingReport] 無 infos 或不是 list，使用單一持倉格式")
             # 沒有 infos，當作單一持倉
-            text = format_holding_report_text(trader, include_link)
+            text = format_holding_report_text(trader, include_link, channel_lang)
         
         tasks.append(
             send_discord_message(
@@ -175,10 +187,10 @@ async def send_discord_message(bot, channel_id: int, text: str) -> None:
         import traceback
         logger.error(f"[HoldingReport] 詳細錯誤: {traceback.format_exc()}")
 
-def format_holding_report_text(data: dict, include_link: bool = True) -> str:
+def format_holding_report_text(data: dict, include_link: bool = True, lang: str = None) -> str:
     """格式化持倉報告文本（i18n）"""
     i18n = get_i18n()
-    locale = normalize_locale(data.get('lang'))
+    locale = normalize_locale(lang)
 
     pair_side = i18n.t(f"common.sides.{str(data.get('pair_side',''))}", locale)
     margin_type = i18n.t(f"common.margin_types.{str(data.get('pair_margin_type',''))}", locale)
@@ -219,12 +231,12 @@ def format_holding_report_text(data: dict, include_link: bool = True) -> str:
 
     return text
 
-def format_holding_report_list_text(infos: list, trader: dict, include_link: bool = True) -> str:
+def format_holding_report_list_text(infos: list, trader: dict, include_link: bool = True, lang: str = None) -> str:
     logger.info(f"[HoldingReport] format_holding_report_list_text called, infos={infos}")
     if not infos:
         return ""
     i18n = get_i18n()
-    locale = normalize_locale(trader.get('lang') or (infos[0].get('lang') if infos else None))
+    locale = normalize_locale(lang)
     trader_name = trader.get('trader_name', 'Trader')
     text = i18n.render("holding.summary", locale, {"trader_name": trader_name}) + "\n\n"
     for i, data in enumerate(infos, 1):
@@ -285,9 +297,12 @@ async def handle_holding_report(request: Request, bot) -> Dict:
         logger.error(f"[HoldingReport] JSON 解析失敗: {e}")
         return {"status": "400", "message": "Invalid JSON body"}
 
+    # 規範化資料（解包 {"data": [...]}）
+    normalized_data = data["data"] if isinstance(data, dict) and isinstance(data.get("data"), list) else data
+
     # 資料驗證
     try:
-        validate_holding_report(data)
+        validate_holding_report(normalized_data)
         logger.info("[HoldingReport] 數據驗證通過")
     except ValueError as err:
         logger.error(f"[HoldingReport] 數據驗證失敗: {err}")
@@ -296,7 +311,7 @@ async def handle_holding_report(request: Request, bot) -> Dict:
     # 背景處理：在 Discord 事件迴圈執行
     logger.info("[HoldingReport] 開始背景處理，調度到 Discord 事件迴圈")
     try:
-        asyncio.run_coroutine_threadsafe(process_holding_report_discord(data, bot), bot.loop)
+        asyncio.run_coroutine_threadsafe(process_holding_report_discord(normalized_data, bot), bot.loop)
         logger.info("[HoldingReport] 成功調度背景任務")
     except Exception as e:
         logger.error(f"[HoldingReport] 調度背景任務失敗: {e}")

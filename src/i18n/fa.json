@@ -1,0 +1,64 @@
+{
+  "common": {
+    "labels": {
+      "time": "زمان",
+      "direction": "جهت",
+      "entry_price": "قیمت ورود",
+      "exit_price": "قیمت خروج",
+      "current_price": "قیمت فعلی",
+      "roi": "ROI",
+      "total_trades": "کل معاملات",
+      "wins": "بردها",
+      "losses": "باخت‌ها",
+      "win_rate": "درصد برد"
+    },
+    "sides": { "1": "لانگ", "2": "شورت" },
+    "margin_types": { "1": "متقاطع", "2": "ایزوله" },
+    "detail_line": "[درباره {trader_name}، اقدامات بیشتر>>]({url})"
+  },
+  "copy_signal": {
+    "title_open": "⚡️**{trader_name}** معامله جدید باز شد",
+    "title_close": "⚡️**{trader_name}** بستن معامله",
+    "pair_types": { "buy": "باز", "sell": "بستن" },
+    "body": "📢{pair}  {margin_type} {leverage}X\n\n⏰{time_label}: {time} (UTC+0)\n➡️{direction_label}: {pair_type} {pair_side}\n🎯{entry_price_label}: {price}\n{detail_line}"
+  },
+  "holding": {
+    "title": "📊 **گزارش موقعیت**",
+    "summary": "⚡️**{trader_name}** خلاصه معاملات (بروزرسانی هر ۱۲ ساعت)",
+    "line_direction": "جهت: {pair_side}",
+    "line_entry": "قیمت ورود: ${price}",
+    "line_current": "قیمت فعلی: ${price}",
+    "line_roi": "ROI: {roi}%",
+    "tp": "✅حد سود: ${price}",
+    "sl": "🛑حد ضرر: ${price}"
+  },
+  "scalp": {
+    "title_update": "⚡️**{trader_name}** بروزرسانی حد سود/ضرر",
+    "title_setting": "⚡️**{trader_name}** تنظیم حد سود/ضرر",
+    "line_pair": "**{pair}** {pair_side}",
+    "line_time": "زمان: {time} (UTC+0)",
+    "tp_update": "✅حد سود: ${old} تغییر به ${new}",
+    "sl_update": "🛑حد ضرر: ${old} تغییر به ${new}",
+    "tp": "✅حد سود: ${price}",
+    "sl": "🛑حد ضرر: ${price}"
+  },
+  "summary": {
+    "title": "📊 **خلاصه معامله**",
+    "close": "⚡️**{trader_name}** بستن معامله",
+    "line_time": "زمان: {time} (UTC+0)",
+    "line_direction": "جهت: بستن {pair_side}",
+    "line_roi": "ROI: {roi}%",
+    "line_entry": "قیمت ورود: ${price}",
+    "line_exit": "قیمت خروج: ${price}"
+  },
+  "weekly": {
+    "title": "⚡️گزارش عملکرد هفتگی {trader_name}",
+    "total_r": "🔥 ROI: {total_roi}%",
+    "total_trades": "📈 کل معاملات: {count}",
+    "wins": "✅ بردها: {count}",
+    "losses": "❌ باخت‌ها: {count}",
+    "win_rate": "🏆 درصد برد: {rate}%"
+  }
+}
+
+

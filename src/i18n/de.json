@@ -1,0 +1,64 @@
+{
+  "common": {
+    "labels": {
+      "time": "Zeit",
+      "direction": "Richtung",
+      "entry_price": "Einstiegspreis",
+      "exit_price": "Ausstiegspreis",
+      "current_price": "Aktueller Preis",
+      "roi": "ROI",
+      "total_trades": "Gesamtanzahl der Trades",
+      "wins": "Gewinne",
+      "losses": "Verluste",
+      "win_rate": "Gewinnrate"
+    },
+    "sides": { "1": "Long", "2": "Kurz" },
+    "margin_types": { "1": "Cross", "2": "Isolated" },
+    "detail_line": "[Über {trader_name}, weitere Aktionen>>]({url})"
+  },
+  "copy_signal": {
+    "title_open": "⚡️**{trader_name}** Neuer Trade Eröffnet",
+    "title_close": "⚡️**{trader_name}** Position Geschlossen",
+    "pair_types": { "buy": "Öffnen", "sell": "Schließen" },
+    "body": "📢{pair}  {margin_type} {leverage}X\n\n⏰{time_label}: {time} (UTC+0)\n➡️{direction_label}: {pair_type} {pair_side}\n🎯{entry_price_label}: {price}\n{detail_line}"
+  },
+  "holding": {
+    "title": "📊 **Positionsbericht**",
+    "summary": "⚡️**{trader_name}** Handelsübersicht (aktualisiert alle 12 Stunden)",
+    "line_direction": "Richtung: {pair_side}",
+    "line_entry": "Einstiegspreis: ${price}",
+    "line_current": "Aktueller Preis: ${price}",
+    "line_roi": "ROI: {roi}%",
+    "tp": "✅TP Preis: ${price}",
+    "sl": "🛑SL Preis: ${price}"
+  },
+  "scalp": {
+    "title_update": "⚡️**{trader_name}** TP/SL-Aktualisierung",
+    "title_setting": "⚡️**{trader_name}** TP/SL-Einstellung",
+    "line_pair": "**{pair}** {pair_side}",
+    "line_time": "Zeit: {time} (UTC+0)",
+    "tp_update": "✅TP Preis: ${old} geändert zu ${new}",
+    "sl_update": "🛑SL Preis: ${old} geändert zu ${new}",
+    "tp": "✅TP Preis: ${price}",
+    "sl": "🛑SL Preis: ${price}"
+  },
+  "summary": {
+    "title": "📊 **Trade-Zusammenfassung**",
+    "close": "⚡️**{trader_name}** Position Geschlossen",
+    "line_time": "Zeit: {time} (UTC+0)",
+    "line_direction": "Richtung: Schließen {pair_side}",
+    "line_roi": "ROI: {roi}%",
+    "line_entry": "Einstiegspreis: ${price}",
+    "line_exit": "Ausstiegspreis: ${price}"
+  },
+  "weekly": {
+    "title": "⚡️{trader_name} Wöchentlicher Leistungsbericht",
+    "total_r": "🔥 ROI: {total_roi}%",
+    "total_trades": "📈 Gesamtanzahl der Trades: {count}",
+    "wins": "✅ Gewinne: {count}",
+    "losses": "❌ Verluste: {count}",
+    "win_rate": "🏆 Gewinnrate: {rate}%"
+  }
+}
+
+
