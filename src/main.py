@@ -3,6 +3,7 @@ import re
 import os
 import discord
 import logging
+from logging.handlers import RotatingFileHandler
 import asyncio
 import aiohttp
 import aiofiles
@@ -25,7 +26,39 @@ from handlers.holding_report_handler import handle_holding_report
 from handlers.weekly_report_handler import handle_weekly_report
 from multilingual_utils import get_multilingual_content, AI_TRANSLATE_HINT, LANGUAGE_CODE_MAPPING, get_uid_already_verified_message
 
-logging.basicConfig(level=logging.INFO)
+# 統一日誌：集中到 root，避免子 logger 重複輸出，並啟用文件輪轉
+def _configure_logging() -> None:
+    try:
+        # 建立 logs 目錄
+        os.makedirs("logs", exist_ok=True)
+
+        # 清空 root handlers，統一掛載檔案與控制台
+        root = logging.getLogger()
+        if root.handlers:
+            for h in list(root.handlers):
+                root.removeHandler(h)
+
+        fmt = logging.Formatter('%(asctime)s [%(levelname)-7s] %(name)s: %(message)s')
+
+        fh = RotatingFileHandler('logs/dcbot.log', maxBytes=5_000_000, backupCount=3, encoding='utf-8')
+        fh.setFormatter(fmt)
+        ch = logging.StreamHandler()
+        ch.setFormatter(fmt)
+
+        root.addHandler(fh)
+        root.addHandler(ch)
+        root.setLevel(logging.INFO)
+
+        # 子 logger 使用 root（避免各自重複寫）
+        for name in ['uvicorn', 'uvicorn.error', 'uvicorn.access', 'discord', 'discord.gateway', 'discord.client']:
+            lg = logging.getLogger(name)
+            lg.handlers.clear()
+            lg.propagate = True
+    except Exception:
+        # 若配置日誌失敗，退回最簡設定以確保不阻塞啟動
+        logging.basicConfig(level=logging.INFO)
+
+_configure_logging()
 
 load_dotenv()
 app = FastAPI()
@@ -51,6 +84,102 @@ intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
 intents.presences = True  # 新增 presence intent 用於檢測在線狀態
+
+# UID 已驗證的本地多語文案與語言正規化
+_UID_VERIFIED_MESSAGES = {
+    "en": "This UID has already been verified.",
+    "zh": "此 UID 已被驗證過",
+    "ru": "Этот UID уже был верифицирован.",
+    "id": "UID ini telah diverifikasi.",
+    "ja": "このUIDは既に認証済みです。",
+    "pt": "Este UID já foi verificado.",
+    "fr": "Cet UID a déjà été vérifié.",
+    "es": "Este UID ya ha sido verificado.",
+    "tr": "Bu UID zaten doğrulandı.",
+    "de": "Diese UID wurde bereits verifiziert.",
+    "it": "Questo UID è già stato verificato.",
+    "ar": "تم التحقق من هذا المعرف مسبقًا.",
+    "fa": "این UID قبلاً تأیید شده است.",
+    "vi": "UID này đã được xác minh.",
+    "tl": "Ang UID na ito ay na-verify na.",
+    "th": "UID นี้ได้รับการยืนยันแล้ว",
+    "da": "Denne UID er allerede blevet bekræftet.",
+    "pl": "Ten UID został już zweryfikowany.",
+    "ko": "이 UID는 이미 인증되었습니다.",
+}
+
+_LANG_TO_UID_MSG_KEY = {
+    # 英文
+    "en": "en", "en_us": "en", "en-us": "en", "en_US": "en",
+    # 中文（簡/繁都對應 zh；若需區分可再細分）
+    "zh": "zh", "zh_cn": "zh", "zh-cn": "zh", "zh_CN": "zh", "zh-Hans": "zh",
+    "zh_tw": "zh", "zh-tw": "zh", "zh_TW": "zh", "zh-Hant": "zh",
+    # 其餘語系常見代碼映射
+    "ru": "ru", "ru_ru": "ru", "ru_RU": "ru",
+    "id": "id", "in_id": "id", "in_ID": "id",
+    "ja": "ja", "ja_jp": "ja", "ja_JP": "ja",
+    "pt": "pt", "pt_pt": "pt", "pt_PT": "pt",
+    "fr": "fr", "fr_fr": "fr", "fr_FR": "fr",
+    "es": "es", "es_es": "es", "es_ES": "es",
+    "tr": "tr", "tr_tr": "tr", "tr_TR": "tr",
+    "de": "de", "de_de": "de", "de_DE": "de",
+    "it": "it", "it_it": "it", "it_IT": "it",
+    "vi": "vi", "vi_vn": "vi", "vi_VN": "vi",
+    "tl": "tl", "tl_ph": "tl", "tl_PH": "tl",
+    "ar": "ar", "ar_ae": "ar", "ar_AE": "ar",
+    "fa": "fa", "fa_ir": "fa", "fa_IR": "fa",
+    "ko": "ko", "ko_kr": "ko", "ko_KR": "ko",
+    "th": "th", "th_th": "th", "th_TH": "th",
+    "da": "da",
+    "pl": "pl",
+}
+
+def _normalize_uid_msg_lang(code: Optional[str]) -> str:
+    if not code:
+        return "en"
+    key = str(code).strip()
+    mapped = _LANG_TO_UID_MSG_KEY.get(key)
+    if mapped:
+        return mapped
+    lowered = key.replace(" ", "").replace("_", "-").lower()
+    mapped = _LANG_TO_UID_MSG_KEY.get(lowered)
+    return mapped or "en"
+
+async def _fetch_group_lang_from_detail(verify_group_id: int) -> str:
+    """從 DETAIL_API 查詢群組語言，回傳本地字典鍵（例如 'en'/'zh'/...）。失敗回 'en'。"""
+    try:
+        if not DETAIL_API:
+            logging.warning("[Verify] DETAIL_API is not set; fallback to 'en'")
+            return "en"
+        logging.info(f"[Verify] Fetching group language from DETAIL_API, group={verify_group_id}")
+        payload = {"verifyGroup": verify_group_id, "brand": "BYD", "type": "DISCORD"}
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.post(DETAIL_API, data=payload) as resp:
+                    logging.info(f"[Verify] DETAIL_API status={resp.status}")
+                    if resp.status != 200:
+                        logging.warning("[Verify] DETAIL_API non-200 response; fallback to 'en'")
+                        return "en"
+                    try:
+                        data = await resp.json()
+                        logging.info(f"[Verify] DETAIL_API response keys={list(data.keys())}")
+                    except Exception:
+                        logging.exception("[Verify] DETAIL_API JSON parse failed; fallback to 'en'")
+                        return "en"
+            except Exception:
+                logging.exception("[Verify] DETAIL_API request failed; fallback to 'en'")
+                return "en"
+        lang = (
+            (data.get("data", {}).get("lang") if isinstance(data.get("data"), dict) else None)
+            or data.get("lang")
+            or "en"
+        )
+        lang_key = _normalize_uid_msg_lang(lang)
+        logging.info(f"[Verify] DETAIL_API lang='{lang}' => normalized='{lang_key}'")
+        return lang_key
+    except Exception:
+        logging.exception("[Verify] DETAIL_API unexpected error; fallback to 'en'")
+        return "en"
 
 class ChannelManager:
     def __init__(self):
@@ -257,7 +386,13 @@ class UIDInputModal(Modal):
         # 檢查用戶是否已經驗證
         role = discord.utils.get(interaction.user.roles, name="BYDFi Signal")
         if role:
-            await interaction.followup.send("You have already been verified.", ephemeral=True)
+            # 使用群組語言回覆
+            try:
+                lang_key = await _fetch_group_lang_from_detail(interaction.channel.id)
+            except Exception:
+                lang_key = "en"
+            msg = _UID_VERIFIED_MESSAGES.get(lang_key, _UID_VERIFIED_MESSAGES["en"])
+            await interaction.followup.send(msg, ephemeral=True)
             return
         
         # 使用現有的驗證邏輯
@@ -266,32 +401,18 @@ class UIDInputModal(Modal):
         verification_status = await is_user_verified(interaction.user.id, verify_channel_id, uid)
         
         if verification_status == "verified":
-            await interaction.followup.send("You have already been verified.", ephemeral=True)
+            try:
+                lang_key = await _fetch_group_lang_from_detail(verify_channel_id)
+            except Exception:
+                lang_key = "en"
+            msg = _UID_VERIFIED_MESSAGES.get(lang_key, _UID_VERIFIED_MESSAGES["en"])
+            await interaction.followup.send(msg, ephemeral=True)
             return
         
         if verification_status == "warning":
-            # 調用 Verify API 取得群組語言，僅用於本段多語言自定義文案
-            payload = {
-                "code": uid,
-                "verifyGroup": verify_channel_id,
-                "brand": "BYD",
-                "type": "DISCORD"
-            }
-            lang = "en"
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(VERIFY_API, data=payload) as response:
-                        data = await response.json()
-                        # 嘗試多種結構的 lang 位置
-                        lang = (
-                            data.get("lang")
-                            or (data.get("data", {}).get("lang") if isinstance(data.get("data"), dict) else None)
-                            or "en"
-                        )
-            except Exception:
-                lang = "en"
-
-            message = get_uid_already_verified_message(lang)
+            # 該 UID 已被驗證過：改為向 DETAIL_API 查詢群組語言後，使用本地多語文案回覆
+            lang_key = await _fetch_group_lang_from_detail(verify_channel_id)
+            message = _UID_VERIFIED_MESSAGES.get(lang_key, _UID_VERIFIED_MESSAGES["en"])
             await interaction.followup.send(message, ephemeral=True)
             return
         
@@ -317,10 +438,18 @@ class UIDInputModal(Modal):
                     
                     admin_mention = interaction.guild.owner.mention if interaction.guild.owner else "@admin"
                     api_message = api_message.replace("@{admin}", admin_mention)
+                    # 後端訊息可能包含 HTML <a> 標籤與占位符，統一在本地移除/替換，避免未渲染占位符外露
                     api_message = api_message.replace("<a>", "").replace("</a>", "")
+                    # 無論成功或失敗，先處理占位符，避免顯示 @{username} / {Approval Link}
+                    user_mention = interaction.user.mention
+                    api_message = (
+                        api_message
+                        .replace("@{username}", user_mention)
+                        .replace("{Approval Link}", "")
+                        .strip()
+                    )
                     
                     if response.status == 200 and "verification successful" in api_message:
-                        api_message = api_message.replace("@{username}", "").replace("{Approval Link}", "").strip()
                         bot.verified_users[interaction.user.id] = uid
                         
                         try:
@@ -1178,7 +1307,7 @@ async def safe_dm(ctx, content: str):
 def run_api():
     """Run the FastAPI server"""
     # uvicorn.run(app, host="172.31.91.89", port=5011)
-    uvicorn.run(app, host="0.0.0.0", port=5011)
+    uvicorn.run(app, host="0.0.0.0", port=5011, access_log=False)
     # uvicorn.run(app, host="172.25.183.177", port=5011)
 
 # 在主函數中啟動 API 服務
