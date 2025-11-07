@@ -145,6 +145,33 @@ def _normalize_uid_msg_lang(code: Optional[str]) -> str:
     mapped = _LANG_TO_UID_MSG_KEY.get(lowered)
     return mapped or "en"
 
+def _ensure_rtl_text(text: str, lang_key: str) -> str:
+    """確保 RTL 文字（阿拉伯語、波斯語、希伯來語）在所有 Discord 客戶端統一左對齊顯示
+    為了解決不同客戶端顯示不一致的問題，我們強制使用 LTR 標記，確保所有平台都左對齊
+    """
+    rtl_langs = {"ar", "fa", "he", "ur"}
+    if lang_key in rtl_langs and text:
+        # 檢查文字是否包含 RTL 字元（阿拉伯語、波斯語、希伯來語等）
+        has_rtl = False
+        for char in text:
+            code = ord(char)
+            if (0x0590 <= code <= 0x05FF or  # Hebrew
+                0x0600 <= code <= 0x06FF or  # Arabic
+                0x0700 <= code <= 0x074F or  # Syriac
+                0x0750 <= code <= 0x077F or  # Arabic Supplement
+                0x08A0 <= code <= 0x08FF or  # Arabic Extended-A
+                0xFB50 <= code <= 0xFDFF or  # Arabic Presentation Forms-A
+                0xFE70 <= code <= 0xFEFF):   # Arabic Presentation Forms-B
+                has_rtl = True
+                break
+        if has_rtl:
+            # 移除所有可能存在的方向標記（RTL 和 LTR）
+            text = text.replace("\u200F", "").replace("\u200E", "")
+            # 強制添加 LTR（從左到右）標記，確保所有 Discord 客戶端都左對齊顯示
+            # LEFT-TO-RIGHT MARK (U+200E) 會強制文字從左到右排列，統一所有平台的顯示
+            return f"\u200E{text}"
+    return text
+
 async def _fetch_group_lang_from_detail(verify_group_id: int) -> str:
     """從 DETAIL_API 查詢群組語言，回傳本地字典鍵（例如 'en'/'zh'/...）。失敗回 'en'。"""
     try:
@@ -392,6 +419,8 @@ class UIDInputModal(Modal):
             except Exception:
                 lang_key = "en"
             msg = _UID_VERIFIED_MESSAGES.get(lang_key, _UID_VERIFIED_MESSAGES["en"])
+            msg = _ensure_rtl_text(msg, lang_key)
+            logging.info(f"[Verify] Role check: lang_key='{lang_key}', msg_length={len(msg)}, msg_preview={repr(msg[:50])}")
             await interaction.followup.send(msg, ephemeral=True)
             return
         
@@ -406,6 +435,8 @@ class UIDInputModal(Modal):
             except Exception:
                 lang_key = "en"
             msg = _UID_VERIFIED_MESSAGES.get(lang_key, _UID_VERIFIED_MESSAGES["en"])
+            msg = _ensure_rtl_text(msg, lang_key)
+            logging.info(f"[Verify] Status=verified: lang_key='{lang_key}', msg_length={len(msg)}, msg_preview={repr(msg[:50])}")
             await interaction.followup.send(msg, ephemeral=True)
             return
         
@@ -413,6 +444,8 @@ class UIDInputModal(Modal):
             # 該 UID 已被驗證過：改為向 DETAIL_API 查詢群組語言後，使用本地多語文案回覆
             lang_key = await _fetch_group_lang_from_detail(verify_channel_id)
             message = _UID_VERIFIED_MESSAGES.get(lang_key, _UID_VERIFIED_MESSAGES["en"])
+            message = _ensure_rtl_text(message, lang_key)
+            logging.info(f"[Verify] Status=warning: lang_key='{lang_key}', msg_length={len(message)}, msg_preview={repr(message[:50])}")
             await interaction.followup.send(message, ephemeral=True)
             return
         
